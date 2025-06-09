@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tank Battle Arena</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .game-container {
+            width: 90vw;
+            max-width: 1200px;
+            height: 80vh;
+            background: linear-gradient(to bottom, #87CEEB 0%, #98FB98 50%, #8B4513 100%);
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .mountains {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 40%;
+            z-index: 1;
+        }
+
+        .mountain-left {
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(45deg, #654321, #8B4513);
+            clip-path: polygon(0% 100%, 0% 20%, 50% 100%);
+        }
+
+        .mountain-right {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(-45deg, #654321, #8B4513);
+            clip-path: polygon(50% 100%, 100% 20%, 100% 100%);
+        }
+
+        .tank {
+            position: absolute;
+            width: 60px;
+            height: 40px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 5;
+        }
+
+        .tank:hover {
+            transform: scale(1.1);
+        }
+
+        .tank-body {
+            width: 50px;
+            height: 25px;
+            border-radius: 5px;
+            position: relative;
+        }
+
+        .tank-turret {
+            width: 20px;
+            height: 15px;
+            border-radius: 3px;
+            position: absolute;
+            top: -5px;
+            left: 15px;
+        }
+
+        .tank-barrel {
+            width: 25px;
+            height: 4px;
+            border-radius: 2px;
+            position: absolute;
+            top: 5px;
+        }
+
+        .player1-tank .tank-body {
+            background: #2E8B57;
+        }
+
+        .player1-tank .tank-turret {
+            background: #228B22;
+        }
+
+        .player1-tank .tank-barrel {
+            background: #1F5F3F;
+            right: -20px;
+        }
+
+        .player2-tank .tank-body {
+            background: #B22222;
+        }
+
+        .player2-tank .tank-turret {
+            background: #8B0000;
+        }
+
+        .player2-tank .tank-barrel {
+            background: #5F1F1F;
+            left: -20px;
+        }
+
+        .king-tank {
+            filter: drop-shadow(0 0 10px gold);
+            animation: kingGlow 2s infinite alternate;
+        }
+
+        @keyframes kingGlow {
+            from { filter: drop-shadow(0 0 10px gold); }
+            to { filter: drop-shadow(0 0 20px gold); }
+        }
+
+        .health-bar {
+            position: absolute;
+            top: -15px;
+            left: 0;
+            width: 50px;
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00);
+            transition: width 0.3s ease;
+        }
+
+        .bullet {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #FFD700;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #FFD700;
+            z-index: 10;
+        }
+
+        .explosion {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #FF4500, #FF8C00, transparent);
+            animation: explode 0.5s ease-out forwards;
+            z-index: 15;
+        }
+
+        @keyframes explode {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+
+        .dice {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: white;
+            border: 3px solid #333;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 20;
+            animation: rollDice 1s ease-in-out;
+        }
+
+        @keyframes rollDice {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(90deg) scale(1.2); }
+            50% { transform: rotate(180deg) scale(1.1); }
+            75% { transform: rotate(270deg) scale(1.2); }
+        }
+
+        .ui-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 30;
+            min-width: 300px;
+        }
+
+        .room-code {
+            font-size: 24px;
+            color: #FFD700;
+            margin-bottom: 10px;
+        }
+
+        .game-status {
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .player-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: background 0.3s;
+        }
+
+        .button:hover {
+            background: #45a049;
+        }
+
+        .button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        .drawing-area {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255,255,255,0.9);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            z-index: 25;
+        }
+
+        .tank-preview {
+            width: 100px;
+            height: 60px;
+            margin: 20px auto;
+            position: relative;
+        }
+
+        .join-game {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            z-index: 40;
+        }
+
+        input {
+            padding: 10px;
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .phase-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 20px;
+            z-index: 35;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container" id="gameContainer">
+        <!-- Mountains -->
+        <div class="mountains">
+            <div class="mountain-left"></div>
+            <div class="mountain-right"></div>
+        </div>
+
+        <!-- UI Panel -->
+        <div class="ui-panel" id="uiPanel">
+            <div class="room-code" id="roomCode">Room: XXXX</div>
+            <div class="game-status" id="gameStatus">Waiting for players...</div>
+            <div class="player-info">
+                <span id="player1Info">Player 1: Not joined</span>
+                <span id="player2Info">Player 2: Not joined</span>
+            </div>
+            <button class="button" id="rollDiceBtn" onclick="rollDice()" disabled>Roll Dice</button>
+            <button class="button" id="nextPhaseBtn" onclick="nextPhase()" style="display:none;">Next Phase</button>
+        </div>
+
+        <!-- Join Game Modal -->
+        <div class="join-game" id="joinGameModal">
+            <h2>Join Tank Battle</h2>
+            <p>Enter room code to join existing game or create new room:</p>
+            <input type="text" id="roomCodeInput" placeholder="Enter room code (optional)" maxlength="4">
+            <br>
+            <button class="button" onclick="joinGame()">Join/Create Game</button>
+        </div>
+
+        <!-- Drawing Area -->
+        <div class="drawing-area" id="drawingArea" style="display:none;">
+            <h3 id="drawingTitle">Draw Tank 1 of 6</h3>
+            <div class="tank-preview" id="tankPreview">
+                <div class="tank player1-tank">
+                    <div class="tank-body"></div>
+                    <div class="tank-turret"></div>
+                    <div class="tank-barrel"></div>
+                </div>
+            </div>
+            <button class="button" onclick="confirmTankDraw()">Confirm Tank</button>
+        </div>
+
+        <!-- Phase Indicator -->
+        <div class="phase-indicator" id="phaseIndicator" style="display:none;">
+            <div id="phaseText">Select Your King Tank!</div>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        let gameState = {
+            roomCode: '',
+            playerId: null,
+            currentPhase: 'waiting', // waiting, drawing, kingSelection, battle
+            players: {
+                1: { tanks: [], kingTank: null, connected: false },
+                2: { tanks: [], kingTank: null, connected: false }
+            },
+            currentPlayer: 1,
+            currentTankDraw: 0,
+            battleTurn: 1,
+            diceResults: { shooter: 0, target: 0 },
+            gameStarted: false
+        };
+
+        // Tank positions
+        const tankPositions = {
+            player1: [
+                { x: 100, y: 400 }, { x: 150, y: 350 }, { x: 200, y: 300 },
+                { x: 100, y: 450 }, { x: 150, y: 500 }, { x: 200, y: 450 }
+            ],
+            player2: [
+                { x: 950, y: 400 }, { x: 900, y: 350 }, { x: 850, y: 300 },
+                { x: 950, y: 450 }, { x: 900, y: 500 }, { x: 850, y: 450 }
+            ]
+        };
+
+        function generateRoomCode() {
+            return Math.random().toString(36).substr(2, 4).toUpperCase();
+        }
+
+        function joinGame() {
+            const inputCode = document.getElementById('roomCodeInput').value.toUpperCase();
+            gameState.roomCode = inputCode || generateRoomCode();
+            
+            // Simulate player assignment (in real multiplayer, this would be handled by server)
+            gameState.playerId = Math.random() > 0.5 ? 1 : 2;
+            gameState.players[gameState.playerId].connected = true;
+            
+            document.getElementById('roomCode').textContent = `Room: ${gameState.roomCode}`;
+            document.getElementById('joinGameModal').style.display = 'none';
+            
+            updateUI();
+            
+            // Simulate second player joining after 2 seconds
+            setTimeout(() => {
+                const otherPlayer = gameState.playerId === 1 ? 2 : 1;
+                gameState.players[otherPlayer].connected = true;
+                startDrawingPhase();
+            }, 2000);
+        }
+
+        function startDrawingPhase() {
+            gameState.currentPhase = 'drawing';
+            gameState.currentPlayer = 1;
+            gameState.currentTankDraw = 0;
+            updateUI();
+            showDrawingArea();
+        }
+
+        function showDrawingArea() {
+            document.getElementById('drawingArea').style.display = 'block';
+            document.getElementById('drawingTitle').textContent = 
+                `Player ${gameState.currentPlayer}: Draw Tank ${gameState.currentTankDraw + 1} of 6`;
+            
+            // Update tank preview based on current player
+            const preview = document.querySelector('#tankPreview .tank');
+            preview.className = `tank player${gameState.currentPlayer}-tank`;
+        }
+
+        function confirmTankDraw() {
+            // Create tank with random health (for demo purposes)
+            const tank = {
+                id: gameState.currentTankDraw,
+                health: 3,
+                maxHealth: 3,
+                isKing: false,
+                alive: true
+            };
+            
+            gameState.players[gameState.currentPlayer].tanks.push(tank);
+            gameState.currentTankDraw++;
+            
+            if (gameState.currentTankDraw >= 6) {
+                // Switch to next player or move to king selection
+                if (gameState.currentPlayer === 1) {
+                    gameState.currentPlayer = 2;
+                    gameState.currentTankDraw = 0;
+                    showDrawingArea();
+                } else {
+                    // Both players finished drawing
+                    document.getElementById('drawingArea').style.display = 'none';
+                    startKingSelection();
+                }
+            } else {
+                showDrawingArea();
+            }
+        }
+
+        function startKingSelection() {
+            gameState.currentPhase = 'kingSelection';
+            gameState.currentPlayer = 1;
+            showPhaseIndicator('Select Your King Tank!');
+            createTanks();
+            
+            // Add click listeners to tanks for king selection
+            document.querySelectorAll('.tank').forEach(tank => {
+                tank.addEventListener('click', selectKingTank);
+            });
+        }
+
+        function selectKingTank(event) {
+            if (gameState.currentPhase !== 'kingSelection') return;
+            
+            const tankElement = event.currentTarget;
+            const tankId = parseInt(tankElement.dataset.tankId);
+            const playerId = parseInt(tankElement.dataset.playerId);
+            
+            if (playerId !== gameState.currentPlayer) return;
+            
+            // Set king tank
+            gameState.players[playerId].kingTank = tankId;
+            gameState.players[playerId].tanks[tankId].isKing = true;
+            
+            // Add king styling
+            tankElement.classList.add('king-tank');
+            
+            if (gameState.currentPlayer === 1) {
+                gameState.currentPlayer = 2;
+                showPhaseIndicator('Player 2: Select Your King Tank!');
+            } else {
+                startBattle();
+            }
+        }
+
+        function startBattle() {
+            gameState.currentPhase = 'battle';
+            gameState.currentPlayer = 1;
+            hidePhaseIndicator();
+            document.getElementById('rollDiceBtn').disabled = false;
+            updateUI();
+        }
+
+        function createTanks() {
+            const container = document.getElementById('gameContainer');
+            
+            // Clear existing tanks
+            document.querySelectorAll('.tank').forEach(tank => tank.remove());
+            
+            // Create player 1 tanks
+            gameState.players[1].tanks.forEach((tank, index) => {
+                if (tank.alive) {
+                    const tankElement = createTankElement(tank, 1, index, tankPositions.player1[index]);
+                    container.appendChild(tankElement);
+                }
+            });
+            
+            // Create player 2 tanks
+            gameState.players[2].tanks.forEach((tank, index) => {
+                if (tank.alive) {
+                    const tankElement = createTankElement(tank, 2, index, tankPositions.player2[index]);
+                    container.appendChild(tankElement);
+                }
+            });
+        }
+
+        function createTankElement(tank, playerId, tankId, position) {
+            const tankDiv = document.createElement('div');
+            tankDiv.className = `tank player${playerId}-tank`;
+            tankDiv.dataset.tankId = tankId;
+            tankDiv.dataset.playerId = playerId;
+            tankDiv.style.left = position.x + 'px';
+            tankDiv.style.top = position.y + 'px';
+            
+            if (tank.isKing) {
+                tankDiv.classList.add('king-tank');
+            }
+            
+            tankDiv.innerHTML = `
+                <div class="health-bar">
+                    <div class="health-fill" style="width: ${(tank.health / tank.maxHealth) * 100}%"></div>
+                </div>
+                <div class="tank-body"></div>
+                <div class="tank-turret"></div>
+                <div class="tank-barrel"></div>
+            `;
+            
+            return tankDiv;
+        }
+
+        function rollDice() {
+            document.getElementById('rollDiceBtn').disabled = true;
+            
+            // First dice roll - select shooter tank
+            showDice(1, () => {
+                gameState.diceResults.shooter = Math.floor(Math.random() * 6) + 1;
+                
+                // Second dice roll - select target tank
+                setTimeout(() => {
+                    showDice(2, () => {
+                        gameState.diceResults.target = Math.floor(Math.random() * 6) + 1;
+                        executeAttack();
+                    });
+                }, 1000);
+            });
+        }
+
+        function showDice(diceNumber, callback) {
+            const dice = document.createElement('div');
+            dice.className = 'dice';
+            dice.style.left = diceNumber === 1 ? '400px' : '500px';
+            dice.style.top = '200px';
+            
+            const container = document.getElementById('gameContainer');
+            container.appendChild(dice);
+            
+            // Animate dice roll
+            let rollCount = 0;
+            const rollInterval = setInterval(() => {
+                dice.textContent = Math.floor(Math.random() * 6) + 1;
+                rollCount++;
+                
+                if (rollCount > 10) {
+                    clearInterval(rollInterval);
+                    const finalValue = Math.floor(Math.random() * 6) + 1;
+                    dice.textContent = finalValue;
+                    
+                    setTimeout(() => {
+                        dice.remove();
+                        callback();
+                    }, 1000);
+                }
+            }, 100);
+        }
+
+        function executeAttack() {
+            const shooterTankId = gameState.diceResults.shooter - 1;
+            const targetTankId = gameState.diceResults.target - 1;
+            const shooterPlayerId = gameState.currentPlayer;
+            const targetPlayerId = shooterPlayerId === 1 ? 2 : 1;
+            
+            const shooterTank = gameState.players[shooterPlayerId].tanks[shooterTankId];
+            const targetTank = gameState.players[targetPlayerId].tanks[targetTankId];
+            
+            if (!shooterTank || !shooterTank.alive || !targetTank || !targetTank.alive) {
+                // Invalid attack, skip turn
+                nextTurn();
+                return;
+            }
+            
+            // Get tank positions
+            const shooterPos = tankPositions[`player${shooterPlayerId}`][shooterTankId];
+            const targetPos = tankPositions[`player${targetPlayerId}`][targetTankId];
+            
+            // Fire bullet
+            fireBullet(shooterPos, targetPos, () => {
+                // Calculate damage
+                const damage = shooterTank.isKing ? 3 : 1; // King tanks one-shot
+                targetTank.health = Math.max(0, targetTank.health - damage);
+                
+                if (targetTank.health <= 0) {
+                    targetTank.alive = false;
+                }
+                
+                // Show explosion
+                showExplosion(targetPos);
+                
+                // Update display
+                setTimeout(() => {
+                    createTanks();
+                    checkWinCondition();
+                    nextTurn();
+                }, 1000);
+            });
+        }
+
+        function fireBullet(startPos, endPos, callback) {
+            const bullet = document.createElement('div');
+            bullet.className = 'bullet';
+            bullet.style.left = startPos.x + 25 + 'px';
+            bullet.style.top = startPos.y + 20 + 'px';
+            
+            document.getElementById('gameContainer').appendChild(bullet);
+            
+            // Animate bullet
+            const deltaX = endPos.x - startPos.x;
+            const deltaY = endPos.y - startPos.y;
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            const duration = distance / 2; // Speed control
+            
+            bullet.style.transition = `all ${duration}ms linear`;
+            bullet.style.left = endPos.x + 25 + 'px';
+            bullet.style.top = endPos.y + 20 + 'px';
+            
+            setTimeout(() => {
+                bullet.remove();
+                callback();
+            }, duration);
+        }
+
+        function showExplosion(position) {
+            const explosion = document.createElement('div');
+            explosion.className = 'explosion';
+            explosion.style.left = position.x + 'px';
+            explosion.style.top = position.y + 'px';
+            
+            document.getElementById('gameContainer').appendChild(explosion);
+            
+            setTimeout(() => {
+                explosion.remove();
+            }, 500);
+        }
+
+        function checkWinCondition() {
+            const player1Alive = gameState.players[1].tanks.some(tank => tank.alive);
+            const player2Alive = gameState.players[2].tanks.some(tank => tank.alive);
+            
+            if (!player1Alive) {
+                showPhaseIndicator('Player 2 Wins!');
+                gameState.currentPhase = 'ended';
+            } else if (!player2Alive) {
+                showPhaseIndicator('Player 1 Wins!');
+                gameState.currentPhase = 'ended';
+            }
+        }
+
+        function nextTurn() {
+            if (gameState.currentPhase === 'ended') return;
+            
+            gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
+            document.getElementById('rollDiceBtn').disabled = false;
+            updateUI();
+        }
+
+        function showPhaseIndicator(text) {
+            document.getElementById('phaseText').textContent = text;
+            document.getElementById('phaseIndicator').style.display = 'block';
+        }
+
+        function hidePhaseIndicator() {
+            document.getElementById('phaseIndicator').style.display = 'none';
+        }
+
+        function updateUI() {
+            const player1Connected = gameState.players[1].connected;
+            const player2Connected = gameState.players[2].connected;
+            
+            document.getElementById('player1Info').textContent = 
+                `Player 1: ${player1Connected ? 'Connected' : 'Not joined'}`;
+            document.getElementById('player2Info').textContent = 
+                `Player 2: ${player2Connected ? 'Connected' : 'Not joined'}`;
+            
+            let status = '';
+            switch (gameState.currentPhase) {
+                case 'waiting':
+                    status = 'Waiting for players...';
+                    break;
+                case 'drawing':
+                    status = `Drawing Phase - Player ${gameState.currentPlayer}`;
+                    break;
+                case 'kingSelection':
+                    status = `King Selection - Player ${gameState.currentPlayer}`;
+                    break;
+                case 'battle':
+                    status = `Battle Phase - Player ${gameState.currentPlayer}'s Turn`;
+                    break;
+                case 'ended':
+                    status = 'Game Ended';
+                    break;
+            }
+            
+            document.getElementById('gameStatus').textContent = status;
+        }
+
+        // Initialize game
+        updateUI();
+    </script>
+</body>
+</html>
