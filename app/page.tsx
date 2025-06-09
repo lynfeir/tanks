@@ -1,11 +1,11 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 const TankBattleGame = () => {
   const [gameState, setGameState] = useState('lobby'); // lobby, drawing, playing, gameOver
   const [roomCode, setRoomCode] = useState('');
   const [players, setPlayers] = useState({});
-  const [currentPlayer, setCurrentPlayer] = useState(null);
+  const [currentPlayer, setCurrentPlayer] = useState<string | null>(null);
   const [playerTanks, setPlayerTanks] = useState({ player1: [], player2: [] });
   const [kingTanks, setKingTanks] = useState({ player1: null, player2: null });
   const [currentTurn, setCurrentTurn] = useState('player1');
@@ -62,7 +62,7 @@ const TankBattleGame = () => {
     }
   };
 
-  const drawScene = () => {
+  const drawScene = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
@@ -314,7 +314,7 @@ const TankBattleGame = () => {
   // Redraw scene when state changes
   useEffect(() => {
     drawScene();
-  }, [playerTanks, tankLives, kingTanks, explosions]);
+  }, [drawScene]);
 
   const DiceComponent = ({ value, label }) => (
     <div className="flex flex-col items-center">
