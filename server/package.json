@@ -1,0 +1,12 @@
+{
+  "name": "rollin-tanks-server",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
