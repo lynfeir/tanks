@@ -1,3 +1,4 @@
+const http = require('http');
 const { WebSocketServer } = require('ws');
 const GameRoom = require('./GameRoom');
 const { generateRoomCode, generatePlayerId } = require('./utils');
@@ -6,9 +7,22 @@ const PORT = process.env.PORT || 3001;
 const rooms = new Map();
 const playerRoomMap = new Map();
 
-const wss = new WebSocketServer({ port: PORT });
+const httpServer = http.createServer((req, res) => {
+  if (req.url === '/' || req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('ok');
+    return;
+  }
 
-console.log(`Rollin' Tanks WS server running on port ${PORT}`);
+  res.writeHead(404, { 'Content-Type': 'text/plain' });
+  res.end('Not found');
+});
+
+const wss = new WebSocketServer({ server: httpServer });
+
+httpServer.listen(PORT, () => {
+  console.log(`Rollin' Tanks WS server running on port ${PORT}`);
+});
 
 // Cleanup stale rooms every 5 minutes
 setInterval(() => {
