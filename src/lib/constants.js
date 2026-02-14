@@ -46,4 +46,5 @@ export const WS_MESSAGES = {
   SYNC_STATE: 'SYNC_STATE',
 };
 
-export const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001';
+export const WS_URL =
+  process.env.NEXT_PUBLIC_WS_URL || 'wss://tanks-production-73d4.up.railway.app';
