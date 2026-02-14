@@ -3,7 +3,12 @@ const { WebSocketServer } = require('ws');
 const GameRoom = require('./GameRoom');
 const { generateRoomCode, generatePlayerId } = require('./utils');
 
-const PORT = process.env.PORT || 3001;
+const isRailway = Boolean(
+  process.env.RAILWAY_PROJECT_ID ||
+  process.env.RAILWAY_ENVIRONMENT_ID ||
+  process.env.RAILWAY_ENVIRONMENT
+);
+const PORT = Number(process.env.PORT || (isRailway ? 8080 : 3001));
 const rooms = new Map();
 const playerRoomMap = new Map();
 
