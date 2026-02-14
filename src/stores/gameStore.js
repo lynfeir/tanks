@@ -177,19 +177,15 @@ const useGameStore = create((set, get) => ({
 
   syncState: (serverState) =>
     set((state) => {
-      const myPlayer = serverState.players[state.playerId];
-      const opponentId = Object.keys(serverState.players).find(
-        (id) => id !== state.playerId
-      );
-      const opponent = opponentId ? serverState.players[opponentId] : null;
+      const serverPlayers = serverState.players || {};
 
       return {
         phase: serverState.phase,
-        players: serverState.players,
+        players: serverPlayers,
         currentTurn: serverState.currentTurn,
         isMyTurn: serverState.currentTurn === state.playerId,
-        myTanks: myPlayer?.tanks || state.myTanks,
-        opponentTanks: opponent?.tanks || state.opponentTanks,
+        myTanks: serverState.myTanks || state.myTanks,
+        opponentTanks: serverState.opponentTanks || state.opponentTanks,
       };
     }),
 }));

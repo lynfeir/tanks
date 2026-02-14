@@ -64,6 +64,7 @@ export default function useWebSocket() {
         case WS_MESSAGES.ERROR:
           s.setError(msg.payload.message);
           s.addToast(msg.payload.message, 'error');
+          s.setReconnecting(false);
           break;
 
         case WS_MESSAGES.PLAYER_DISCONNECTED:
@@ -76,6 +77,8 @@ export default function useWebSocket() {
 
         case WS_MESSAGES.SYNC_STATE:
           s.syncState(msg.payload);
+          s.setConnected(true);
+          s.setReconnecting(false);
           break;
 
         case WS_MESSAGES.PONG:
@@ -89,12 +92,22 @@ export default function useWebSocket() {
     const removeHandler = addMessageHandler(handleMessage);
 
     connect(
-      () => storeRef.current.setConnected(true),
       () => {
-        storeRef.current.setConnected(false);
-        storeRef.current.setReconnecting(true);
+        const s = storeRef.current;
+        s.setConnected(true);
+        s.setReconnecting(false);
       },
-      () => storeRef.current.addToast('Connection error', 'error')
+      () => {
+        const s = storeRef.current;
+        s.setConnected(false);
+        s.setReconnecting(Boolean(s.roomCode && s.playerId));
+      },
+      () => {
+        const s = storeRef.current;
+        if (!s.roomCode || !s.playerId) {
+          s.addToast('Connection error', 'error');
+        }
+      }
     );
 
     return () => {
