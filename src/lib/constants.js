@@ -46,5 +46,32 @@ export const WS_MESSAGES = {
   SYNC_STATE: 'SYNC_STATE',
 };
 
-export const WS_URL =
-  process.env.NEXT_PUBLIC_WS_URL || 'wss://tanks-production-73d4.up.railway.app';
+const DEFAULT_WS_URL = 'wss://tanks-production-73d4.up.railway.app';
+
+function normalizeWebSocketUrl(rawUrl) {
+  const value = (rawUrl || '').trim();
+  if (!value) return DEFAULT_WS_URL;
+
+  if (/^wss?:\/\//i.test(value)) return value;
+  if (/^https?:\/\//i.test(value)) return value.replace(/^http/i, 'ws');
+
+  const hasWindow = typeof window !== 'undefined';
+  if (value.startsWith('/')) {
+    if (hasWindow) {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      return `${protocol}//${window.location.host}${value}`;
+    }
+    return DEFAULT_WS_URL;
+  }
+
+  if (hasWindow) {
+    const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+    return `${protocol}${value.replace(/^\/+/, '')}`;
+  }
+
+  return `wss://${value.replace(/^\/+/, '')}`;
+}
+
+export const WS_URL = normalizeWebSocketUrl(
+  process.env.NEXT_PUBLIC_WS_URL || DEFAULT_WS_URL
+);
