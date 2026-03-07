@@ -46,7 +46,7 @@ export const WS_MESSAGES = {
   SYNC_STATE: 'SYNC_STATE',
 };
 
-const DEFAULT_WS_URL = 'wss://tanks-production-73d4.up.railway.app';
+const DEFAULT_WS_URL = 'wss://tanks-production-d9e4.up.railway.app';
 
 function normalizeWebSocketUrl(rawUrl) {
   const value = (rawUrl || '').trim();
