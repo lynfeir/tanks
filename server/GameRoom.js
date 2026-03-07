@@ -9,7 +9,8 @@ const PHASES = {
 const TANKS_PER_PLAYER = 6;
 const NORMAL_HP = 2;
 const KING_HP = 1;
-const DISCONNECT_GRACE_MS = 60000;
+const DISCONNECT_GRACE_MS = 90000;
+const TURN_DELAY_MS = 4500;
 
 class GameRoom {
   constructor(roomCode) {
@@ -19,12 +20,22 @@ class GameRoom {
     this.playerOrder = [];
     this.currentTurnIndex = 0;
     this.disconnectTimers = {};
+    this.turnTimer = null;
     this.createdAt = Date.now();
+    this.lastActivity = Date.now();
+    this.rollInProgress = false;
+  }
+
+  touch() {
+    this.lastActivity = Date.now();
   }
 
   addPlayer(playerId, playerName, ws) {
     if (this.playerOrder.length >= 2) {
       return { error: 'Room is full' };
+    }
+    if (this.phase !== PHASES.LOBBY) {
+      return { error: 'Game already in progress' };
     }
 
     this.players[playerId] = {
@@ -45,6 +56,7 @@ class GameRoom {
     };
 
     this.playerOrder.push(playerId);
+    this.touch();
 
     if (this.playerOrder.length === 2) {
       this.phase = PHASES.DRAWING;
@@ -57,6 +69,7 @@ class GameRoom {
   reconnectPlayer(playerId, ws) {
     const player = this.players[playerId];
     if (!player) return false;
+    if (this.phase === PHASES.GAME_OVER) return false;
 
     if (this.disconnectTimers[playerId]) {
       clearTimeout(this.disconnectTimers[playerId]);
@@ -65,35 +78,47 @@ class GameRoom {
 
     player.ws = ws;
     player.connected = true;
+    this.touch();
 
     this.broadcastToOthers(playerId, 'PLAYER_RECONNECTED', { playerId });
-
     this.sendTo(playerId, 'SYNC_STATE', this.getState(playerId));
 
     return true;
   }
 
-  handleDisconnect(playerId) {
+  handleDisconnect(playerId, closedWs) {
     const player = this.players[playerId];
     if (!player) return;
+    if (!player.connected) return;
+    if (closedWs && player.ws && player.ws !== closedWs) return;
 
     player.connected = false;
     player.ws = null;
 
+    if (this.phase === PHASES.LOBBY || this.phase === PHASES.GAME_OVER) {
+      return;
+    }
+
     this.broadcastToOthers(playerId, 'PLAYER_DISCONNECTED', { playerId });
 
+    if (this.disconnectTimers[playerId]) {
+      clearTimeout(this.disconnectTimers[playerId]);
+    }
+
     this.disconnectTimers[playerId] = setTimeout(() => {
-      if (!this.players[playerId]?.connected) {
+      if (this.players[playerId] && !this.players[playerId].connected && this.phase !== PHASES.GAME_OVER) {
         const winnerId = this.playerOrder.find((id) => id !== playerId);
         if (winnerId) {
           this.phase = PHASES.GAME_OVER;
           this.broadcast('GAME_OVER', {
             winnerId,
+            loserId: playerId,
             reason: 'disconnect',
             stats: this.getStats(),
           });
         }
       }
+      delete this.disconnectTimers[playerId];
     }, DISCONNECT_GRACE_MS);
   }
 
@@ -104,12 +129,17 @@ class GameRoom {
 
     const player = this.players[playerId];
     if (!player) return { error: 'Player not found' };
+    if (player.drawingsSubmitted) return { error: 'Already submitted' };
+    if (!Array.isArray(tanks) || !Array.isArray(bullets)) {
+      return { error: 'Invalid drawing data' };
+    }
 
     for (let i = 0; i < TANKS_PER_PLAYER; i++) {
       player.tanks[i].imageUrl = tanks[i] || null;
       player.tanks[i].bulletUrl = bullets[i] || null;
     }
     player.drawingsSubmitted = true;
+    this.touch();
 
     this.broadcastToOthers(playerId, 'DRAWINGS_RECEIVED', { playerId });
 
@@ -128,6 +158,7 @@ class GameRoom {
 
     const player = this.players[playerId];
     if (!player) return { error: 'Player not found' };
+    if (player.kingSelected) return { error: 'Already selected' };
     if (tankIndex < 0 || tankIndex >= TANKS_PER_PLAYER) {
       return { error: 'Invalid tank index' };
     }
@@ -137,6 +168,7 @@ class GameRoom {
       t.hp = i === tankIndex ? KING_HP : NORMAL_HP;
     });
     player.kingSelected = true;
+    this.touch();
 
     this.broadcastToOthers(playerId, 'KING_SELECTED', { playerId });
 
@@ -148,88 +180,77 @@ class GameRoom {
   }
 
   startBattle() {
+    if (this.playerOrder.length < 2) return;
+    const p1 = this.players[this.playerOrder[0]];
+    const p2 = this.players[this.playerOrder[1]];
+    if (!p1 || !p2) return;
+
     this.phase = PHASES.BATTLE;
     this.currentTurnIndex = 0;
 
-    const opponentTanksMap = {};
     for (const pid of this.playerOrder) {
       const oppId = this.playerOrder.find((id) => id !== pid);
-      opponentTanksMap[pid] = this.players[oppId].tanks.map((t) => ({
-        id: t.id,
-        imageUrl: t.imageUrl,
-        bulletUrl: t.bulletUrl,
-        hp: t.hp,
-        isKing: t.isKing,
-        destroyed: t.destroyed,
+      const oppTanks = this.players[oppId].tanks.map((t) => ({
+        id: t.id, imageUrl: t.imageUrl, bulletUrl: t.bulletUrl,
+        hp: t.hp, isKing: t.isKing, destroyed: t.destroyed,
       }));
-    }
 
-    for (const pid of this.playerOrder) {
       this.sendTo(pid, 'PHASE_CHANGE', {
         phase: PHASES.BATTLE,
         currentTurn: this.playerOrder[this.currentTurnIndex],
-        opponentTanks: opponentTanksMap[pid],
+        opponentTanks: oppTanks,
       });
     }
   }
 
   rollDice(playerId) {
-    if (this.phase !== PHASES.BATTLE) {
-      return { error: 'Not in battle phase' };
-    }
+    if (this.phase !== PHASES.BATTLE) return { error: 'Not in battle phase' };
+    if (this.rollInProgress) return { error: 'Roll in progress' };
 
     const currentTurnPlayer = this.playerOrder[this.currentTurnIndex];
-    if (playerId !== currentTurnPlayer) {
-      return { error: 'Not your turn' };
-    }
+    if (playerId !== currentTurnPlayer) return { error: 'Not your turn' };
 
     const attackerId = playerId;
     const defenderId = this.playerOrder.find((id) => id !== playerId);
     const attacker = this.players[attackerId];
     const defender = this.players[defenderId];
+    if (!attacker || !defender) return { error: 'Player not found' };
 
     const aliveTanks = attacker.tanks.filter((t) => !t.destroyed);
     const aliveTargets = defender.tanks.filter((t) => !t.destroyed);
+    if (aliveTanks.length === 0 || aliveTargets.length === 0) return { error: 'No valid tanks' };
 
-    if (aliveTanks.length === 0 || aliveTargets.length === 0) {
-      return { error: 'No valid tanks' };
-    }
+    this.rollInProgress = true;
 
     const roll1 = Math.floor(Math.random() * 6) + 1;
     const roll2 = Math.floor(Math.random() * 6) + 1;
 
-    const shooterIndex = aliveTanks[roll1 % aliveTanks.length].id;
-    const targetIndex = aliveTargets[roll2 % aliveTargets.length].id;
-
-    const shooterTank = attacker.tanks[shooterIndex];
-    const targetTank = defender.tanks[targetIndex];
+    const shooterTank = aliveTanks[(roll1 - 1) % aliveTanks.length];
+    const targetTank = aliveTargets[(roll2 - 1) % aliveTargets.length];
 
     const isKingShot = shooterTank.isKing;
-    const damage = isKingShot ? 999 : 1;
 
     if (isKingShot) {
       targetTank.hp = 0;
       targetTank.destroyed = true;
     } else {
-      targetTank.hp = Math.max(0, targetTank.hp - damage);
+      targetTank.hp = Math.max(0, targetTank.hp - 1);
       targetTank.destroyed = targetTank.hp <= 0;
     }
 
+    this.touch();
+
     this.broadcast('DICE_RESULT', {
-      roll1,
-      roll2,
-      attackerId,
-      defenderId,
-      shooterTank: shooterIndex,
-      targetTank: targetIndex,
+      roll1, roll2, attackerId, defenderId,
+      shooterTank: shooterTank.id,
+      targetTank: targetTank.id,
       isKingShot,
-      damage,
+      shooterBulletUrl: shooterTank.bulletUrl,
     });
 
     this.broadcast('TANK_HIT', {
       targetPlayerId: defenderId,
-      tankIndex: targetIndex,
-      damage,
+      tankIndex: targetTank.id,
       isKingShot,
       remainingHP: targetTank.hp,
       destroyed: targetTank.destroyed,
@@ -237,41 +258,50 @@ class GameRoom {
 
     const defenderAlive = defender.tanks.some((t) => !t.destroyed);
     if (!defenderAlive) {
-      this.phase = PHASES.GAME_OVER;
-      this.broadcast('GAME_OVER', {
-        winnerId: attackerId,
-        reason: 'all_destroyed',
-        stats: this.getStats(),
-      });
+      setTimeout(() => {
+        this.rollInProgress = false;
+        if (this.phase === PHASES.BATTLE) {
+          this.phase = PHASES.GAME_OVER;
+          this.broadcast('GAME_OVER', {
+            winnerId: attackerId, loserId: defenderId,
+            reason: 'all_destroyed', stats: this.getStats(),
+          });
+        }
+      }, TURN_DELAY_MS);
       return { success: true };
     }
 
-    this.currentTurnIndex = (this.currentTurnIndex + 1) % 2;
-    setTimeout(() => {
+    if (this.turnTimer) clearTimeout(this.turnTimer);
+    this.turnTimer = setTimeout(() => {
+      this.rollInProgress = false;
       if (this.phase === PHASES.BATTLE) {
+        this.currentTurnIndex = (this.currentTurnIndex + 1) % 2;
         this.broadcast('PHASE_CHANGE', {
           phase: PHASES.BATTLE,
           currentTurn: this.playerOrder[this.currentTurnIndex],
         });
       }
-    }, 3000);
+    }, TURN_DELAY_MS);
 
     return { success: true };
   }
 
   allPlayersReady(field) {
-    return this.playerOrder.every((pid) => this.players[pid]?.[field]);
+    return this.playerOrder.length === 2 &&
+      this.playerOrder.every((pid) => this.players[pid]?.[field]);
   }
 
   getStats() {
     const stats = {};
     for (const pid of this.playerOrder) {
       const p = this.players[pid];
-      stats[pid] = {
-        name: p.name,
-        tanksRemaining: p.tanks.filter((t) => !t.destroyed).length,
-        totalHP: p.tanks.reduce((sum, t) => sum + t.hp, 0),
-      };
+      if (p) {
+        stats[pid] = {
+          name: p.name,
+          tanksRemaining: p.tanks.filter((t) => !t.destroyed).length,
+          totalHP: p.tanks.reduce((sum, t) => sum + t.hp, 0),
+        };
+      }
     }
     return stats;
   }
@@ -284,33 +314,36 @@ class GameRoom {
       players: Object.fromEntries(
         this.playerOrder.map((pid) => [
           pid,
-          { id: pid, name: this.players[pid].name, connected: this.players[pid].connected },
+          { id: pid, name: this.players[pid]?.name || 'Unknown', connected: this.players[pid]?.connected || false },
         ])
       ),
       myTanks: this.players[forPlayerId]?.tanks || [],
-      opponentTanks: oppId ? this.players[oppId].tanks : [],
-      currentTurn: this.playerOrder[this.currentTurnIndex],
+      opponentTanks: oppId ? this.players[oppId]?.tanks?.map((t) => ({
+        id: t.id, imageUrl: t.imageUrl, bulletUrl: t.bulletUrl,
+        hp: t.hp, isKing: t.isKing, destroyed: t.destroyed,
+      })) || [] : [],
+      currentTurn: this.playerOrder[this.currentTurnIndex] || null,
     };
   }
 
   sendTo(playerId, type, payload) {
-    const player = this.players[playerId];
-    if (player?.ws?.readyState === 1) {
-      player.ws.send(JSON.stringify({ type, payload }));
+    try {
+      const player = this.players[playerId];
+      if (player?.ws?.readyState === 1) {
+        player.ws.send(JSON.stringify({ type, payload }));
+      }
+    } catch (e) {
+      console.error(`Send failed for ${playerId}:`, e.message);
     }
   }
 
   broadcast(type, payload) {
-    for (const pid of this.playerOrder) {
-      this.sendTo(pid, type, payload);
-    }
+    for (const pid of this.playerOrder) this.sendTo(pid, type, payload);
   }
 
   broadcastToOthers(excludeId, type, payload) {
     for (const pid of this.playerOrder) {
-      if (pid !== excludeId) {
-        this.sendTo(pid, type, payload);
-      }
+      if (pid !== excludeId) this.sendTo(pid, type, payload);
     }
   }
 
@@ -318,9 +351,14 @@ class GameRoom {
     return this.playerOrder.every((pid) => !this.players[pid]?.connected);
   }
 
+  isStale(maxAge = 600000) {
+    return Date.now() - this.lastActivity > maxAge;
+  }
+
   cleanup() {
     Object.values(this.disconnectTimers).forEach(clearTimeout);
     this.disconnectTimers = {};
+    if (this.turnTimer) clearTimeout(this.turnTimer);
   }
 }
 
