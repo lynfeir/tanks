@@ -6,43 +6,58 @@ export default function GameOverScreen() {
   const myTanks = useGameStore((s) => s.myTanks);
   const opponentTanks = useGameStore((s) => s.opponentTanks);
   const resetGame = useGameStore((s) => s.resetGame);
+  const gameOverData = useGameStore((s) => s.gameOverData);
+  const playerId = useGameStore((s) => s.playerId);
 
   const canvasRef = useRef(null);
   const particlesRef = useRef([]);
   const frameRef = useRef(null);
   const [showContent, setShowContent] = useState(false);
+  const [showStats, setShowStats] = useState(false);
 
   const myAlive = myTanks.filter((t) => !t.destroyed).length;
   const oppAlive = opponentTanks.filter((t) => !t.destroyed).length;
-  const isWinner = myAlive > oppAlive;
+
+  // Use gameOverData if available, fall back to tank count
+  const isWinner = gameOverData
+    ? gameOverData.winnerId === playerId
+    : myAlive > oppAlive;
+
+  const disconnectWin = gameOverData?.reason === 'disconnect' && isWinner;
 
   useEffect(() => {
-    setTimeout(() => setShowContent(true), 500);
+    const t1 = setTimeout(() => setShowContent(true), 400);
+    const t2 = setTimeout(() => setShowStats(true), 1200);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
 
-  // Confetti animation for winner
+  // Particle animation
   useEffect(() => {
-    if (!isWinner || !canvasRef.current) return;
+    if (!canvasRef.current) return;
 
     const canvas = canvasRef.current;
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resize();
     const ctx = canvas.getContext('2d');
 
-    const colors = ['#ff6b35', '#ffd700', '#2ed573', '#1e90ff', '#ff4757', '#a55eea', '#ffffff'];
+    const colors = isWinner
+      ? ['#ff6600', '#ffcc00', '#00ff41', '#ff0044', '#ffffff']
+      : ['#ff0044', '#cc0033', '#660022', '#444444'];
 
-    particlesRef.current = Array.from({ length: 80 }, () => ({
+    const count = isWinner ? 80 : 20;
+
+    particlesRef.current = Array.from({ length: count }, () => ({
       x: Math.random() * canvas.width,
-      y: Math.random() * -canvas.height,
-      w: 4 + Math.random() * 6,
-      h: 8 + Math.random() * 12,
+      y: isWinner ? Math.random() * -canvas.height : Math.random() * canvas.height,
+      w: 3 + Math.random() * 6,
+      h: 3 + Math.random() * 6,
       color: colors[Math.floor(Math.random() * colors.length)],
-      vy: 1 + Math.random() * 3,
+      vy: isWinner ? 1 + Math.random() * 3 : -0.3 - Math.random() * 0.8,
       vx: (Math.random() - 0.5) * 2,
-      rotation: Math.random() * 360,
-      rotSpeed: (Math.random() - 0.5) * 10,
-      wobble: Math.random() * Math.PI * 2,
-      wobbleSpeed: 0.03 + Math.random() * 0.05,
+      opacity: isWinner ? 1 : 0.3 + Math.random() * 0.4,
     }));
 
     const animate = () => {
@@ -50,37 +65,36 @@ export default function GameOverScreen() {
 
       particlesRef.current.forEach((p) => {
         p.y += p.vy;
-        p.x += p.vx + Math.sin(p.wobble) * 0.5;
-        p.rotation += p.rotSpeed;
-        p.wobble += p.wobbleSpeed;
+        p.x += p.vx;
 
-        if (p.y > canvas.height + 20) {
-          p.y = -20;
-          p.x = Math.random() * canvas.width;
+        if (isWinner) {
+          if (p.y > canvas.height + 20) {
+            p.y = -20;
+            p.x = Math.random() * canvas.width;
+          }
+        } else {
+          if (p.y < -20) {
+            p.y = canvas.height + 20;
+            p.x = Math.random() * canvas.width;
+          }
+          p.opacity *= 0.999;
         }
 
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.globalAlpha = p.opacity;
         ctx.fillStyle = p.color;
-        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
-        ctx.restore();
+        // Square pixel particles
+        ctx.fillRect(Math.floor(p.x), Math.floor(p.y), p.w, p.h);
       });
 
       frameRef.current = requestAnimationFrame(animate);
     };
 
     frameRef.current = requestAnimationFrame(animate);
-
-    const handleResize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', resize);
 
     return () => {
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', resize);
     };
   }, [isWinner]);
 
@@ -91,67 +105,75 @@ export default function GameOverScreen() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(10, 10, 26, 0.9)' }}>
+      style={{ background: 'rgba(15, 15, 35, 0.95)' }}>
 
-      {/* Confetti canvas */}
-      {isWinner && (
-        <canvas
-          ref={canvasRef}
-          className="absolute inset-0 pointer-events-none"
-        />
-      )}
+      <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />
 
       {showContent && (
-        <div className="text-center animate-slide-up z-10">
-          <div className={`text-8xl mb-6 ${isWinner ? 'animate-victory' : ''}`}>
-            {isWinner ? '\u{1F3C6}' : '\u{1F4A5}'}
-          </div>
-
-          <h1
-            className="text-5xl font-black mb-4"
-            style={{
-              background: isWinner
-                ? 'linear-gradient(135deg, var(--king-gold), var(--accent))'
-                : 'linear-gradient(135deg, var(--danger), #ff8888)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            {isWinner ? 'VICTORY!' : 'DEFEATED'}
+        <div className="text-center z-10 px-4">
+          {/* Title */}
+          <h1 className="font-pixel text-3xl sm:text-5xl mb-4 animate-slide-up"
+            style={{ color: isWinner ? 'var(--king-gold)' : 'var(--danger)' }}>
+            {isWinner ? '>>> VICTORY <<<' : '>>> DEFEAT <<<'}
           </h1>
 
-          <p className="text-lg mb-8" style={{ color: 'var(--text-secondary)' }}>
-            {isWinner
-              ? 'You destroyed all enemy tanks!'
-              : 'Your tanks have been eliminated.'}
+          {/* Subtitle */}
+          <p className="font-mono text-sm mb-8 animate-fade-in"
+            style={{ color: 'var(--text-secondary)', animationDelay: '0.3s' }}>
+            {disconnectWin
+              ? 'OPPONENT DISCONNECTED'
+              : isWinner
+              ? 'ALL ENEMY TANKS DESTROYED'
+              : 'YOUR TANKS HAVE BEEN ELIMINATED'}
           </p>
 
-          <div className="glass-card p-6 mb-8 inline-block">
-            <div className="grid grid-cols-2 gap-8 text-center">
-              <div>
-                <div className="text-3xl font-black" style={{ color: 'var(--success)' }}>
-                  {myAlive}
-                </div>
-                <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  Your Tanks Left
-                </div>
+          {/* Stats */}
+          {showStats && (
+            <div className="inline-block p-6 mb-8 animate-slide-up"
+              style={{
+                background: 'var(--bg-secondary)',
+                border: '3px solid var(--pixel-border)',
+              }}>
+              <div className="font-pixel text-[8px] mb-4" style={{ color: 'var(--text-secondary)' }}>
+                -- BATTLE REPORT --
               </div>
-              <div>
-                <div className="text-3xl font-black" style={{ color: 'var(--danger)' }}>
-                  {oppAlive}
+              <div className="grid grid-cols-2 gap-10 text-center">
+                <div>
+                  <div className="font-pixel text-2xl" style={{ color: 'var(--success)' }}>
+                    {myAlive}
+                  </div>
+                  <div className="font-pixel text-[7px] mt-2" style={{ color: 'var(--text-secondary)' }}>
+                    YOUR TANKS
+                  </div>
                 </div>
-                <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  Enemy Tanks Left
+                <div>
+                  <div className="font-pixel text-2xl" style={{ color: 'var(--danger)' }}>
+                    {oppAlive}
+                  </div>
+                  <div className="font-pixel text-[7px] mt-2" style={{ color: 'var(--text-secondary)' }}>
+                    ENEMY TANKS
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
-          <br />
-
-          <button className="btn-primary text-lg px-10 py-4" onClick={handlePlayAgain}>
-            Play Again
-          </button>
+          {/* Play again */}
+          {showStats && (
+            <div className="animate-fade-in" style={{ animationDelay: '0.5s' }}>
+              <button
+                className="btn-pixel text-sm px-12 py-4"
+                onClick={handlePlayAgain}
+                style={isWinner ? {
+                  background: 'var(--king-gold)',
+                  color: '#000',
+                  boxShadow: '0 4px 0 0 #cc9900, 0 6px 0 0 #0a0a1a, 0 0 30px rgba(255, 204, 0, 0.3)',
+                } : {}}
+              >
+                PLAY AGAIN?
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

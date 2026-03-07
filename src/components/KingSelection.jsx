@@ -15,24 +15,20 @@ export default function KingSelection({ onSelectKing }) {
 
   if (confirmed) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="glass-card p-10 text-center animate-fade-in">
-          <div className="text-5xl mb-4 animate-crown-bounce">&#128081;</div>
-          <h2 className="text-2xl font-bold mb-2">King Selected!</h2>
-          <p style={{ color: 'var(--text-secondary)' }}>
-            Waiting for opponent to choose their King...
+      <div className="min-h-screen flex items-center justify-center pixel-grid-bg"
+        style={{ background: 'var(--bg-primary)' }}>
+        <div className="pixel-panel p-10 text-center animate-fade-in">
+          <div className="font-pixel text-lg mb-4" style={{ color: 'var(--king-gold)' }}>
+            [KING]
+          </div>
+          <h2 className="font-pixel text-sm mb-4" style={{ color: 'var(--king-gold)' }}>
+            KING SELECTED!
+          </h2>
+          <p className="font-mono text-sm" style={{ color: 'var(--text-secondary)' }}>
+            Waiting for opponent...
           </p>
-          <div className="flex justify-center gap-1 mt-6">
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="w-2 h-2 rounded-full"
-                style={{
-                  background: 'var(--king-gold)',
-                  animation: `float 1.5s ease-in-out infinite ${i * 0.2}s`,
-                }}
-              />
-            ))}
+          <div className="font-pixel text-[8px] mt-6 animate-blink" style={{ color: 'var(--text-secondary)' }}>
+            PLEASE WAIT...
           </div>
         </div>
       </div>
@@ -40,69 +36,93 @@ export default function KingSelection({ onSelectKing }) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4">
-      <div className="text-center mb-8 animate-slide-down">
-        <div className="text-5xl mb-4 animate-crown-bounce">&#128081;</div>
-        <h2 className="text-3xl font-bold mb-2">Choose Your King Tank</h2>
-        <p style={{ color: 'var(--text-secondary)' }} className="max-w-md">
-          The King Tank can <strong className="text-yellow-400">one-shot</strong> any enemy tank,
-          but it only has <strong className="text-red-400">1 HP</strong>. Choose wisely!
-        </p>
-      </div>
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 pixel-grid-bg"
+      style={{ background: 'var(--bg-primary)' }}>
 
-      <div className="grid grid-cols-3 gap-4 mb-8 max-w-lg animate-fade-in">
-        {myTanks.map((tank, i) => (
-          <button
-            key={i}
-            className={`relative rounded-2xl p-2 transition-all duration-300 ${
-              selectedIndex === i ? 'animate-king-glow scale-105' : 'hover:scale-102'
-            }`}
-            style={{
-              background: selectedIndex === i
-                ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 107, 53, 0.2))'
-                : 'rgba(10, 10, 26, 0.6)',
-              border: selectedIndex === i
-                ? '3px solid var(--king-gold)'
-                : '2px solid rgba(255, 255, 255, 0.1)',
-            }}
-            onClick={() => setSelectedIndex(i)}
-          >
-            {/* Crown indicator */}
-            {selectedIndex === i && (
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-2xl animate-crown-bounce">
-                &#128081;
-              </div>
-            )}
+      <div className="relative z-10 w-full max-w-xl">
+        <div className="text-center mb-8 animate-slide-down">
+          <div className="font-pixel text-lg mb-4" style={{ color: 'var(--king-gold)' }}>
+            [KING]
+          </div>
+          <h2 className="font-pixel text-base sm:text-lg mb-4" style={{ color: 'var(--king-gold)' }}>
+            CHOOSE YOUR KING
+          </h2>
+          <p className="font-mono text-xs max-w-md mx-auto leading-relaxed"
+            style={{ color: 'var(--text-secondary)' }}>
+            The King can <span style={{ color: 'var(--king-gold)' }}>ONE-SHOT</span> any enemy,
+            but has only <span style={{ color: 'var(--danger)' }}>1 HP</span>
+          </p>
+        </div>
 
-            {/* Tank image */}
-            <div
-              className="w-full aspect-[4/3] rounded-xl mb-2"
+        <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-8 animate-fade-in">
+          {myTanks.map((tank, i) => (
+            <button
+              key={i}
+              className="relative p-3 transition-all duration-200"
               style={{
-                background: 'rgba(10, 10, 26, 0.8)',
-                backgroundImage: tank.imageUrl ? `url(${tank.imageUrl})` : 'none',
-                backgroundSize: 'contain',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
+                background: selectedIndex === i
+                  ? 'rgba(255, 204, 0, 0.1)'
+                  : 'var(--bg-secondary)',
+                border: selectedIndex === i
+                  ? '3px solid var(--king-gold)'
+                  : '3px solid var(--pixel-border)',
+                boxShadow: selectedIndex === i
+                  ? '0 0 15px rgba(255, 204, 0, 0.2)'
+                  : 'none',
               }}
-            />
+              onClick={() => setSelectedIndex(i)}
+            >
+              {selectedIndex === i && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 font-pixel text-[8px] z-10 px-1"
+                  style={{
+                    color: 'var(--king-gold)',
+                    background: 'var(--bg-primary)',
+                  }}>
+                  [K]
+                </div>
+              )}
 
-            <div className="text-center">
-              <span className="text-sm font-bold">Tank #{i + 1}</span>
-              <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
-                {selectedIndex === i ? '1 HP - One Shot Kill' : '2 HP - Standard'}
+              <div className="w-full aspect-[4/3] mb-2"
+                style={{
+                  background: 'var(--bg-primary)',
+                  backgroundImage: tank.imageUrl ? `url(${tank.imageUrl})` : 'none',
+                  backgroundSize: 'contain',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                  border: '2px solid ' + (selectedIndex === i ? 'var(--king-gold)' : 'var(--pixel-border)'),
+                }} />
+
+              <div className="text-center">
+                <span className="font-pixel text-[8px]" style={{
+                  color: selectedIndex === i ? 'var(--king-gold)' : 'var(--text-primary)',
+                }}>
+                  TANK #{i + 1}
+                </span>
+                <div className="font-pixel text-[6px] mt-1"
+                  style={{
+                    color: selectedIndex === i ? 'var(--king-gold)' : 'var(--text-secondary)',
+                  }}>
+                  {selectedIndex === i ? '1HP/ONE-SHOT' : '2HP/STANDARD'}
+                </div>
               </div>
-            </div>
-          </button>
-        ))}
-      </div>
+            </button>
+          ))}
+        </div>
 
-      <button
-        className="btn-primary px-12 text-lg"
-        disabled={selectedIndex === null}
-        onClick={handleConfirm}
-      >
-        {selectedIndex !== null ? `Crown Tank #${selectedIndex + 1} as King` : 'Select a Tank'}
-      </button>
+        <div className="text-center">
+          <button
+            className="btn-pixel px-12 py-4"
+            disabled={selectedIndex === null}
+            onClick={handleConfirm}
+            style={selectedIndex !== null ? {
+              background: 'var(--king-gold)',
+              boxShadow: '0 4px 0 0 #cc9900, 0 6px 0 0 #0a0a1a',
+            } : {}}
+          >
+            {selectedIndex !== null ? `CROWN TANK #${selectedIndex + 1}` : 'SELECT A TANK'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

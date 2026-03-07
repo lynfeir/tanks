@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import useGameStore from '@/stores/gameStore';
 
 export default function Lobby({ onCreateRoom, onJoinRoom }) {
-  const [mode, setMode] = useState(null); // 'create' | 'join'
+  const [mode, setMode] = useState(null);
   const [name, setName] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,57 +27,41 @@ export default function Lobby({ onCreateRoom, onJoinRoom }) {
   }, [error]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      {/* Animated background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute w-96 h-96 rounded-full opacity-10 blur-3xl"
-          style={{ background: 'var(--accent)', top: '10%', left: '15%', animation: 'float 6s ease-in-out infinite' }} />
-        <div className="absolute w-72 h-72 rounded-full opacity-10 blur-3xl"
-          style={{ background: '#533483', bottom: '15%', right: '10%', animation: 'float 8s ease-in-out infinite reverse' }} />
-        <div className="absolute w-64 h-64 rounded-full opacity-5 blur-3xl"
-          style={{ background: '#2ed573', top: '50%', left: '50%', animation: 'float 7s ease-in-out infinite 1s' }} />
-      </div>
+    <div className="min-h-screen flex items-center justify-center p-4 pixel-grid-bg"
+      style={{ background: 'var(--bg-primary)' }}>
 
       <div className="relative z-10 w-full max-w-md">
         {/* Title */}
-        <div className="text-center mb-10 animate-slide-down">
-          <h1 className="text-6xl font-black tracking-tight mb-2"
-            style={{
-              background: 'linear-gradient(135deg, var(--accent), var(--king-gold))',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              textShadow: 'none',
-            }}>
-            ROLLIN'
+        <div className="text-center mb-12 animate-slide-down">
+          <h1 className="font-pixel text-3xl sm:text-4xl mb-2 animate-flicker"
+            style={{ color: 'var(--accent)' }}>
+            ROLLIN&apos;
           </h1>
-          <h1 className="text-7xl font-black tracking-tighter"
-            style={{
-              background: 'linear-gradient(135deg, var(--king-gold), var(--accent))',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}>
+          <h1 className="font-pixel text-4xl sm:text-5xl mb-6"
+            style={{ color: 'var(--king-gold)' }}>
             TANKS
           </h1>
-          <p className="text-sm mt-4" style={{ color: 'var(--text-secondary)' }}>
-            Draw. Roll. Destroy.
+          <p className="font-pixel text-[8px] sm:text-[10px] tracking-widest"
+            style={{ color: 'var(--text-secondary)' }}>
+            {'>> DRAW. ROLL. DESTROY. <<'}
           </p>
         </div>
 
         {/* Connection status */}
-        <div className="flex items-center justify-center gap-2 mb-6">
-          <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-400' : 'bg-red-400 animate-pulse'}`} />
-          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-            {connected ? 'Connected to server' : 'Connecting...'}
+        <div className="flex items-center justify-center gap-2 mb-8">
+          <div className={`w-2 h-2 transition-colors duration-500 ${connected ? '' : 'animate-blink'}`}
+            style={{ background: connected ? 'var(--success)' : 'var(--danger)' }} />
+          <span className="font-pixel text-[8px]" style={{ color: 'var(--text-secondary)' }}>
+            {connected ? 'ONLINE' : 'CONNECTING...'}
           </span>
         </div>
 
         {!mode ? (
-          /* Mode Selection */
-          <div className="animate-fade-in space-y-4">
+          <div className="animate-fade-in space-y-5">
             <input
               type="text"
-              className="input-field text-center text-lg"
-              placeholder="Enter your name"
+              className="input-pixel text-center"
+              placeholder="ENTER YOUR NAME"
               value={name}
               onChange={(e) => setName(e.target.value)}
               maxLength={20}
@@ -85,85 +69,103 @@ export default function Lobby({ onCreateRoom, onJoinRoom }) {
             />
             <div className="grid grid-cols-2 gap-4 mt-6">
               <button
-                className="btn-primary"
+                className="btn-pixel py-4"
                 disabled={!name.trim() || !connected}
                 onClick={() => setMode('create')}
               >
-                Create Game
+                CREATE
               </button>
               <button
-                className="btn-secondary"
+                className="btn-pixel-secondary py-4"
                 disabled={!name.trim() || !connected}
                 onClick={() => setMode('join')}
               >
-                Join Game
+                JOIN
               </button>
             </div>
           </div>
         ) : mode === 'create' ? (
-          /* Create Room */
-          <div className="animate-fade-in glass-card p-8">
+          <div className="animate-fade-in pixel-panel p-8">
             <button
-              className="text-sm mb-6 flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity"
+              className="font-pixel text-[8px] mb-6 flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity"
+              style={{ color: 'var(--accent)' }}
               onClick={() => { setMode(null); setLoading(false); }}
             >
-              &#8592; Back
+              {'< BACK'}
             </button>
-            <h2 className="text-2xl font-bold mb-2">Create a Room</h2>
-            <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
-              Share the code with your friend to join
+            <h2 className="font-pixel text-sm mb-2" style={{ color: 'var(--accent)' }}>
+              CREATE ROOM
+            </h2>
+            <p className="text-xs mb-6 font-mono" style={{ color: 'var(--text-secondary)' }}>
+              Share the code with your friend
             </p>
-            <p className="text-sm mb-4">Playing as: <strong>{name}</strong></p>
+            <div className="p-3 mb-6" style={{
+              background: 'var(--bg-primary)',
+              border: '2px solid var(--pixel-border)',
+            }}>
+              <p className="font-pixel text-[8px]">
+                PLAYER: <span style={{ color: 'var(--accent)' }}>{name}</span>
+              </p>
+            </div>
             <button
-              className="btn-primary w-full"
+              className="btn-pixel w-full py-4"
               disabled={loading || !connected}
               onClick={handleCreate}
             >
               {loading ? (
                 <span className="inline-flex items-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Creating...
+                  <span className="w-3 h-3 border-2 border-white border-t-transparent animate-spin" />
+                  LOADING...
                 </span>
               ) : (
-                'Create Room'
+                'CREATE ROOM'
               )}
             </button>
           </div>
         ) : (
-          /* Join Room */
-          <div className="animate-fade-in glass-card p-8">
+          <div className="animate-fade-in pixel-panel p-8">
             <button
-              className="text-sm mb-6 flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity"
+              className="font-pixel text-[8px] mb-6 flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity"
+              style={{ color: 'var(--accent)' }}
               onClick={() => { setMode(null); setLoading(false); }}
             >
-              &#8592; Back
+              {'< BACK'}
             </button>
-            <h2 className="text-2xl font-bold mb-2">Join a Room</h2>
-            <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
+            <h2 className="font-pixel text-sm mb-2" style={{ color: 'var(--accent)' }}>
+              JOIN ROOM
+            </h2>
+            <p className="text-xs mb-6 font-mono" style={{ color: 'var(--text-secondary)' }}>
               Enter the room code from your friend
             </p>
             <input
               type="text"
-              className="input-field text-center text-2xl tracking-[0.5em] uppercase font-mono mb-4"
-              placeholder="ROOM CODE"
+              className="input-pixel text-center text-lg tracking-[0.5em] uppercase mb-4"
+              placeholder="CODE"
               value={roomCode}
               onChange={(e) => setRoomCode(e.target.value.toUpperCase().slice(0, 6))}
               maxLength={6}
               autoFocus
             />
-            <p className="text-sm mb-4">Playing as: <strong>{name}</strong></p>
+            <div className="p-3 mb-6" style={{
+              background: 'var(--bg-primary)',
+              border: '2px solid var(--pixel-border)',
+            }}>
+              <p className="font-pixel text-[8px]">
+                PLAYER: <span style={{ color: 'var(--accent)' }}>{name}</span>
+              </p>
+            </div>
             <button
-              className="btn-primary w-full"
+              className="btn-pixel w-full py-4"
               disabled={loading || !connected || roomCode.length < 4}
               onClick={handleJoin}
             >
               {loading ? (
                 <span className="inline-flex items-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Joining...
+                  <span className="w-3 h-3 border-2 border-white border-t-transparent animate-spin" />
+                  JOINING...
                 </span>
               ) : (
-                'Join Room'
+                'JOIN ROOM'
               )}
             </button>
           </div>

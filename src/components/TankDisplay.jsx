@@ -3,73 +3,90 @@
 export default function TankDisplay({ tank, index, isOpponent, isHighlighted, isHit, isShooter }) {
   if (tank.destroyed && !isHit) {
     return (
-      <div className="relative w-20 h-16 opacity-20">
-        <div
-          className="w-full h-full rounded-lg"
+      <div className="relative w-[88px] h-[72px] opacity-30">
+        <div className="w-full h-full"
           style={{
             backgroundImage: tank.imageUrl ? `url(${tank.imageUrl})` : 'none',
             backgroundSize: 'contain',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
-            filter: 'grayscale(1) brightness(0.3)',
-          }}
-        />
-        <div className="absolute inset-0 flex items-center justify-center text-red-500 text-2xl font-black">
-          &#10060;
+            filter: 'grayscale(1) brightness(0.2)',
+          }} />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="font-pixel text-lg" style={{
+            color: 'var(--danger)',
+            textShadow: '0 0 10px rgba(255, 0, 68, 0.5)',
+          }}>X</span>
         </div>
       </div>
     );
   }
 
+  const maxHp = tank.isKing ? 1 : 2;
+  const segments = [];
+  for (let s = 0; s < maxHp; s++) {
+    const filled = s < tank.hp;
+    let segClass = 'hp-segment ';
+    if (!filled) {
+      segClass += 'hp-segment-empty';
+    } else if (tank.isKing) {
+      segClass += 'hp-segment-king';
+    } else if (tank.hp <= 1) {
+      segClass += 'hp-segment-danger';
+    } else {
+      segClass += 'hp-segment-full';
+    }
+    segments.push(<div key={s} className={segClass} />);
+  }
+
   return (
-    <div
-      className={`relative transition-all duration-300 ${
-        isHit ? 'animate-tank-destroy' : ''
-      } ${isShooter ? 'animate-pulse' : ''} ${
-        isHighlighted ? 'scale-110 z-10' : ''
-      }`}
-    >
-      {/* King crown */}
+    <div className={`relative transition-all duration-300 ${
+      isHit ? 'animate-tank-destroy' : ''
+    } ${isShooter ? 'animate-tank-fire' : ''} ${
+      isHighlighted ? 'scale-110 z-10' : ''
+    }`}>
+      {/* King indicator */}
       {tank.isKing && (
-        <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-lg animate-crown-bounce z-10">
-          &#128081;
+        <div className="absolute -top-5 left-1/2 -translate-x-1/2 z-10">
+          <span className="font-pixel text-[7px] animate-blink"
+            style={{ color: 'var(--king-gold)' }}>[K]</span>
         </div>
       )}
 
       {/* Tank image */}
-      <div
-        className={`w-20 h-16 rounded-lg transition-all ${
-          tank.isKing ? 'animate-king-glow' : ''
-        } ${isHighlighted ? 'animate-pulse-glow' : ''}`}
+      <div className={`w-[88px] h-[72px] transition-all duration-300 ${
+        isHighlighted ? 'animate-pixel-pulse' : ''
+      }`}
         style={{
           backgroundImage: tank.imageUrl ? `url(${tank.imageUrl})` : 'none',
           backgroundSize: 'contain',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          background: !tank.imageUrl ? 'rgba(255,255,255,0.05)' : undefined,
+          background: !tank.imageUrl ? 'rgba(255,255,255,0.03)' : undefined,
           border: isHighlighted
             ? '2px solid var(--accent)'
             : tank.isKing
             ? '2px solid var(--king-gold)'
-            : '1px solid rgba(255,255,255,0.1)',
+            : '2px solid var(--pixel-border)',
           transform: isOpponent ? 'scaleX(-1)' : 'none',
-        }}
-      />
+          boxShadow: isHighlighted
+            ? '0 0 15px rgba(255, 102, 0, 0.4)'
+            : tank.isKing
+            ? '0 0 10px rgba(255, 204, 0, 0.2)'
+            : 'none',
+        }} />
 
-      {/* HP bar */}
-      <div className="mt-1 w-20 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.5)' }}>
-        <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{
-            width: `${(tank.hp / (tank.isKing ? 1 : 2)) * 100}%`,
-            background: tank.hp <= 1 ? (tank.isKing ? 'var(--king-gold)' : 'var(--danger)') : 'var(--success)',
-          }}
-        />
+      {/* HP segments */}
+      <div className="flex gap-0.5 justify-center mt-1">
+        {segments}
       </div>
 
-      {/* Tank label */}
+      {/* Label */}
       <div className="text-center mt-0.5">
-        <span className="text-[10px] font-bold" style={{ color: 'var(--text-secondary)' }}>
+        <span className="font-pixel text-[6px]"
+          style={{
+            color: tank.isKing ? 'var(--king-gold)' : 'var(--text-secondary)',
+          }}>
           {tank.isKing ? 'KING' : `#${index + 1}`}
         </span>
       </div>

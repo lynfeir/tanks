@@ -183,45 +183,48 @@ export default function BattleScene({ onRollDice }) {
             {/* Player 1 (You) stats */}
             <div className="flex items-center gap-3">
               <div className="relative">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black"
+                <div className="w-10 h-10 flex items-center justify-center font-pixel text-[10px]"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(46, 213, 115, 0.2), rgba(46, 213, 115, 0.05))',
-                    border: '1px solid rgba(46, 213, 115, 0.4)',
+                    background: 'var(--bg-secondary)',
+                    border: '2px solid var(--success)',
+                    color: 'var(--success)',
                   }}>
                   {myAlive}
                 </div>
                 {currentTurn === playerId && (
-                  <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-green-400 animate-pulse" />
+                  <div className="absolute -top-1 -right-1 w-3 h-3 animate-blink"
+                    style={{ background: 'var(--success)' }} />
                 )}
               </div>
               <div>
-                <div className="text-sm font-bold text-green-400">{myName}</div>
-                <div className="flex gap-0.5">
+                <div className="font-pixel text-[8px]" style={{ color: 'var(--success)' }}>{myName}</div>
+                <div className="flex gap-0.5 mt-1">
                   {myTanks.map((t, i) => (
-                    <div key={i} className="w-2 h-2 rounded-sm transition-all duration-500"
+                    <div key={i} className="w-2.5 h-2.5 transition-all duration-500"
                       style={{
-                        background: t.destroyed ? 'rgba(255,71,87,0.4)' : t.isKing ? 'var(--king-gold)' : 'rgba(46,213,115,0.7)',
-                        boxShadow: t.isKing && !t.destroyed ? '0 0 4px var(--king-gold)' : 'none',
+                        background: t.destroyed
+                          ? 'var(--bg-primary)'
+                          : t.isKing ? 'var(--king-gold)' : 'var(--success)',
+                        border: '1px solid ' + (t.destroyed ? 'var(--pixel-border)' : 'transparent'),
                       }} />
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* Center — Turn indicator + Announcement */}
+            {/* Center — Turn indicator */}
             <div className="text-center flex-1 mx-4">
-              <div className="inline-block rounded-xl px-5 py-2"
+              <div className="inline-block px-5 py-2"
                 style={{
-                  background: 'rgba(10, 10, 30, 0.7)',
-                  backdropFilter: 'blur(8px)',
-                  border: '1px solid rgba(255, 107, 53, 0.2)',
+                  background: 'var(--bg-primary)',
+                  border: '2px solid var(--pixel-border)',
                 }}>
-                <div className="text-xs font-bold tracking-widest"
+                <div className="font-pixel text-[10px] animate-blink"
                   style={{ color: currentTurn === playerId ? 'var(--success)' : 'var(--danger)' }}>
-                  {currentTurnName} TURN
+                  {'>> '}{currentTurnName} TURN{' <<'}
                 </div>
                 {announcement && (
-                  <div className={`text-sm font-bold mt-0.5 animate-fade-in ${isKingShot ? 'text-yellow-400' : ''}`}
+                  <div className={`font-pixel text-[8px] mt-1 animate-fade-in`}
                     style={{ color: isKingShot ? 'var(--king-gold)' : 'var(--accent)' }}>
                     {announcement}
                   </div>
@@ -232,27 +235,31 @@ export default function BattleScene({ onRollDice }) {
             {/* Player 2 (Enemy) stats */}
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <div className="text-sm font-bold text-red-400">{oppName}</div>
-                <div className="flex gap-0.5 justify-end">
+                <div className="font-pixel text-[8px]" style={{ color: 'var(--danger)' }}>{oppName}</div>
+                <div className="flex gap-0.5 justify-end mt-1">
                   {opponentTanks.map((t, i) => (
-                    <div key={i} className="w-2 h-2 rounded-sm transition-all duration-500"
+                    <div key={i} className="w-2.5 h-2.5 transition-all duration-500"
                       style={{
-                        background: t.destroyed ? 'rgba(255,71,87,0.4)' : t.isKing ? 'var(--king-gold)' : 'rgba(255,71,87,0.7)',
-                        boxShadow: t.isKing && !t.destroyed ? '0 0 4px var(--king-gold)' : 'none',
+                        background: t.destroyed
+                          ? 'var(--bg-primary)'
+                          : t.isKing ? 'var(--king-gold)' : 'var(--danger)',
+                        border: '1px solid ' + (t.destroyed ? 'var(--pixel-border)' : 'transparent'),
                       }} />
                   ))}
                 </div>
               </div>
               <div className="relative">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black"
+                <div className="w-10 h-10 flex items-center justify-center font-pixel text-[10px]"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(255, 71, 87, 0.2), rgba(255, 71, 87, 0.05))',
-                    border: '1px solid rgba(255, 71, 87, 0.4)',
+                    background: 'var(--bg-secondary)',
+                    border: '2px solid var(--danger)',
+                    color: 'var(--danger)',
                   }}>
                   {oppAlive}
                 </div>
                 {currentTurn && currentTurn !== playerId && (
-                  <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-400 animate-pulse" />
+                  <div className="absolute -top-1 -right-1 w-3 h-3 animate-blink"
+                    style={{ background: 'var(--danger)' }} />
                 )}
               </div>
             </div>
@@ -332,58 +339,39 @@ export default function BattleScene({ onRollDice }) {
 
         {/* ═══ BOTTOM CONTROLS ═══ */}
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-4">
-          {/* Dice display */}
           {(rolling || diceResults) && (
             <DiceRoller
               result={diceResults}
               rolling={rolling}
-              label1="Shooter"
-              label2="Target"
+              label1="SHOOTER"
+              label2="TARGET"
             />
           )}
 
-          {/* Roll button */}
           {isMyTurn && !animationPlaying && (
             <button
-              className="group relative overflow-hidden rounded-2xl text-xl font-black px-14 py-4 transition-all duration-300 hover:scale-105 active:scale-95"
-              style={{
-                background: 'linear-gradient(135deg, var(--accent), #ff8c5a)',
-                boxShadow: '0 0 30px rgba(255, 107, 53, 0.4), 0 8px 32px rgba(0,0,0,0.3)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                letterSpacing: '2px',
-                color: 'white',
-              }}
+              className="btn-pixel text-base px-14 py-4"
               onClick={handleRoll}
+              style={{
+                fontSize: '0.85rem',
+                boxShadow: '0 4px 0 0 #cc5200, 0 6px 0 0 #0a0a1a, 0 0 30px rgba(255, 102, 0, 0.3)',
+              }}
             >
-              {/* Shimmer effect */}
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{
-                  background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)',
-                  animation: 'shimmer 2s ease-in-out infinite',
-                }} />
-              <span className="relative z-10">ROLL THE DICE</span>
+              ROLL THE DICE
             </button>
           )}
 
-          {/* Waiting state */}
           {!isMyTurn && !animationPlaying && (
-            <div className="rounded-2xl px-10 py-4 text-center"
+            <div className="px-10 py-4 text-center"
               style={{
-                background: 'rgba(10, 10, 30, 0.7)',
-                backdropFilter: 'blur(8px)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                background: 'var(--bg-primary)',
+                border: '2px solid var(--pixel-border)',
               }}>
-              <p className="text-base font-bold" style={{ color: 'var(--text-secondary)' }}>
-                Waiting for opponent...
+              <p className="font-pixel text-[10px]" style={{ color: 'var(--text-secondary)' }}>
+                WAITING FOR OPPONENT
               </p>
-              <div className="flex justify-center gap-1 mt-2">
-                {[0, 1, 2].map((i) => (
-                  <div key={i} className="w-1.5 h-1.5 rounded-full"
-                    style={{
-                      background: 'var(--accent)',
-                      animation: `float 1.5s ease-in-out infinite ${i * 0.2}s`,
-                    }} />
-                ))}
+              <div className="font-pixel text-[8px] mt-2 animate-blink" style={{ color: 'var(--accent)' }}>
+                . . .
               </div>
             </div>
           )}
