@@ -38,6 +38,7 @@ const useGameStore = create((set, get) => ({
   diceResults: null,
   lastHit: null,
   animationPlaying: false,
+  gameOverData: null,
 
   // UI
   toasts: [],
@@ -126,26 +127,24 @@ const useGameStore = create((set, get) => ({
 
   setDiceResults: (results) => set({ diceResults: results }),
 
-  applyHit: (targetPlayerId, tankIndex, damage, isKingShot) =>
+  applyHit: (targetPlayerId, tankIndex, isKingShot, remainingHP, destroyed) =>
     set((state) => {
       const isMyTank = targetPlayerId === state.playerId;
       const key = isMyTank ? 'myTanks' : 'opponentTanks';
       const tanks = [...state[key]];
+      if (!tanks[tankIndex] || tanks[tankIndex].destroyed) return {};
       const tank = { ...tanks[tankIndex] };
 
-      if (isKingShot) {
-        tank.hp = 0;
-        tank.destroyed = true;
-      } else {
-        tank.hp = Math.max(0, tank.hp - damage);
-        tank.destroyed = tank.hp <= 0;
-      }
+      tank.hp = remainingHP;
+      tank.destroyed = destroyed;
 
       tanks[tankIndex] = tank;
       return { [key]: tanks, lastHit: { targetPlayerId, tankIndex, isKingShot } };
     }),
 
   setAnimationPlaying: (playing) => set({ animationPlaying: playing }),
+
+  setGameOverData: (data) => set({ gameOverData: data }),
 
   addToast: (message, type = 'info') =>
     set((state) => ({
@@ -172,6 +171,7 @@ const useGameStore = create((set, get) => ({
       diceResults: null,
       lastHit: null,
       animationPlaying: false,
+      gameOverData: null,
       error: null,
     }),
 

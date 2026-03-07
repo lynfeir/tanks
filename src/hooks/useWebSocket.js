@@ -52,12 +52,13 @@ export default function useWebSocket() {
           break;
 
         case WS_MESSAGES.TANK_HIT: {
-          const { targetPlayerId, tankIndex, damage, isKingShot } = msg.payload;
-          s.applyHit(targetPlayerId, tankIndex, damage, isKingShot);
+          const { targetPlayerId, tankIndex, isKingShot, remainingHP, destroyed } = msg.payload;
+          s.applyHit(targetPlayerId, tankIndex, isKingShot, remainingHP, destroyed);
           break;
         }
 
         case WS_MESSAGES.GAME_OVER:
+          s.setGameOverData(msg.payload);
           s.setPhase(GAME_PHASES.GAME_OVER);
           break;
 

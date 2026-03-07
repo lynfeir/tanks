@@ -33,7 +33,7 @@ httpServer.listen(PORT, () => {
 setInterval(() => {
   const now = Date.now();
   for (const [code, room] of rooms) {
-    if (room.isEmpty() && now - room.createdAt > 300000) {
+    if ((room.isEmpty() && now - room.createdAt > 300000) || room.isStale(600000)) {
       room.cleanup();
       rooms.delete(code);
       console.log(`Cleaned up room ${code}`);
@@ -46,6 +46,7 @@ wss.on('connection', (ws) => {
   let currentRoomCode = null;
 
   ws.isAlive = true;
+  ws.missedPongs = 0;
 
   ws.on('pong', () => {
     ws.isAlive = true;
@@ -234,7 +235,7 @@ wss.on('connection', (ws) => {
     if (currentPlayerId && currentRoomCode) {
       const room = rooms.get(currentRoomCode);
       if (room) {
-        room.handleDisconnect(currentPlayerId);
+        room.handleDisconnect(currentPlayerId, ws);
         console.log(`Player ${currentPlayerId} disconnected from room ${currentRoomCode}`);
       }
     }
@@ -248,9 +249,14 @@ wss.on('connection', (ws) => {
 // Heartbeat to detect stale connections
 const heartbeat = setInterval(() => {
   wss.clients.forEach((ws) => {
-    if (!ws.isAlive) {
+    if (ws.missedPongs >= 2) {
       ws.terminate();
       return;
+    }
+    if (!ws.isAlive) {
+      ws.missedPongs = (ws.missedPongs || 0) + 1;
+    } else {
+      ws.missedPongs = 0;
     }
     ws.isAlive = false;
     ws.ping();

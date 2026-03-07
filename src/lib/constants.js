@@ -12,7 +12,7 @@ export const KING_TANK_HP = 1;
 export const DRAWING_TIME_SECONDS = 180;
 export const CANVAS_WIDTH = 400;
 export const CANVAS_HEIGHT = 300;
-export const DISCONNECT_GRACE_MS = 60000;
+export const DISCONNECT_GRACE_MS = 90000;
 export const ROOM_CODE_LENGTH = 6;
 
 export const BRUSH_SIZES = [3, 6, 12, 20];

@@ -8,6 +8,7 @@ import DrawingPhase from '@/components/DrawingPhase';
 import KingSelection from '@/components/KingSelection';
 import BattleScene from '@/components/BattleScene';
 import GameOverScreen from '@/components/GameOverScreen';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import ToastContainer from '@/components/ui/Toast';
 import { GAME_PHASES } from '@/lib/constants';
 
@@ -54,18 +55,28 @@ export default function Home() {
       {inLobbyWaiting && <WaitingRoom />}
 
       {phase === GAME_PHASES.DRAWING && (
-        <DrawingPhase onSubmit={submitDrawings} />
+        <ErrorBoundary>
+          <DrawingPhase onSubmit={submitDrawings} />
+        </ErrorBoundary>
       )}
 
       {phase === GAME_PHASES.KING_SELECTION && (
-        <KingSelection onSelectKing={handleSelectKing} />
+        <ErrorBoundary>
+          <KingSelection onSelectKing={handleSelectKing} />
+        </ErrorBoundary>
       )}
 
       {phase === GAME_PHASES.BATTLE && (
-        <BattleScene onRollDice={rollDice} />
+        <ErrorBoundary>
+          <BattleScene onRollDice={rollDice} />
+        </ErrorBoundary>
       )}
 
-      {phase === GAME_PHASES.GAME_OVER && <GameOverScreen />}
+      {phase === GAME_PHASES.GAME_OVER && (
+        <ErrorBoundary>
+          <GameOverScreen />
+        </ErrorBoundary>
+      )}
     </main>
   );
 }
