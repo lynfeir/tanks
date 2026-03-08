@@ -22,7 +22,7 @@ export default function TankDisplay({ tank, index, isOpponent, isHighlighted, is
     );
   }
 
-  const maxHp = tank.isKing ? 1 : 2;
+  const maxHp = 2;
   const segments = [];
   for (let s = 0; s < maxHp; s++) {
     const filled = s < tank.hp;

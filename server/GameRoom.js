@@ -8,7 +8,7 @@ const PHASES = {
 
 const TANKS_PER_PLAYER = 6;
 const NORMAL_HP = 2;
-const KING_HP = 1;
+const KING_HP = 2;
 const DISCONNECT_GRACE_MS = 90000;
 const TURN_DELAY_MS = 4500;
 
