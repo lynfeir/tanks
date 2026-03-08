@@ -31,34 +31,34 @@ const STARS = [
 ];
 
 const FIREFLIES = [
-  { cx: 200, cy: 400, delay: 0 },
-  { cx: 400, cy: 380, delay: 0.7 },
-  { cx: 600, cy: 420, delay: 1.4 },
-  { cx: 800, cy: 390, delay: 2.1 },
-  { cx: 1000, cy: 410, delay: 2.8 },
-  { cx: 300, cy: 450, delay: 3.5 },
-  { cx: 500, cy: 440, delay: 0.5 },
-  { cx: 700, cy: 460, delay: 1.2 },
-  { cx: 900, cy: 430, delay: 1.9 },
-  { cx: 150, cy: 430, delay: 2.6 },
-  { cx: 1050, cy: 445, delay: 3.3 },
-  { cx: 350, cy: 410, delay: 0.9 },
+  { cx: 450, cy: 540, delay: 0 },
+  { cx: 550, cy: 530, delay: 0.7 },
+  { cx: 650, cy: 535, delay: 1.4 },
+  { cx: 750, cy: 540, delay: 2.1 },
+  { cx: 500, cy: 545, delay: 2.8 },
+  { cx: 600, cy: 525, delay: 3.5 },
+  { cx: 700, cy: 550, delay: 0.5 },
+  { cx: 520, cy: 548, delay: 1.2 },
+  { cx: 680, cy: 538, delay: 1.9 },
+  { cx: 580, cy: 555, delay: 2.6 },
+  { cx: 480, cy: 535, delay: 3.3 },
+  { cx: 720, cy: 545, delay: 0.9 },
 ];
 
 const LEFT_TREES = [
-  { x: 55, y: 492, h: 18, rx: 10, ry: 14 },
-  { x: 110, y: 472, h: 20, rx: 12, ry: 16 },
-  { x: 165, y: 456, h: 16, rx: 9, ry: 13 },
-  { x: 80, y: 500, h: 14, rx: 8, ry: 11 },
-  { x: 35, y: 510, h: 12, rx: 7, ry: 10 },
+  { x: 60, y: 365, h: 18, rx: 10, ry: 14 },
+  { x: 130, y: 400, h: 20, rx: 12, ry: 16 },
+  { x: 200, y: 435, h: 16, rx: 9, ry: 13 },
+  { x: 90, y: 380, h: 14, rx: 8, ry: 11 },
+  { x: 40, y: 355, h: 12, rx: 7, ry: 10 },
 ];
 
 const RIGHT_TREES = [
-  { x: 1140, y: 492, h: 18, rx: 10, ry: 14 },
-  { x: 1090, y: 472, h: 20, rx: 12, ry: 16 },
-  { x: 1035, y: 456, h: 16, rx: 9, ry: 13 },
-  { x: 1120, y: 500, h: 14, rx: 8, ry: 11 },
-  { x: 1165, y: 510, h: 12, rx: 7, ry: 10 },
+  { x: 1140, y: 365, h: 18, rx: 10, ry: 14 },
+  { x: 1070, y: 400, h: 20, rx: 12, ry: 16 },
+  { x: 1000, y: 435, h: 16, rx: 9, ry: 13 },
+  { x: 1110, y: 380, h: 14, rx: 8, ry: 11 },
+  { x: 1160, y: 355, h: 12, rx: 7, ry: 10 },
 ];
 
 export default function ValleyBackground({ children, shaking }) {
@@ -274,24 +274,35 @@ export default function ValleyBackground({ children, shaking }) {
           </rect>
         </g>
 
-        {/* Valley floor */}
+        {/* Valley floor — angular \__/ shape */}
         <g style={{ transform: `translate(${px * -5}px, 0)` }}>
+          {/* Main valley shape */}
           <path
-            d="M-50 700 L-50 520 Q0 500 100 470 Q200 445 300 430 Q450 420 600 425 Q750 420 900 430 Q1000 445 1100 470 Q1200 500 1250 520 L1250 700Z"
+            d="M-50 700 L-50 340 L420 560 L780 560 L1250 340 L1250 700Z"
             fill="url(#valleyGrad)"
           />
+          {/* Grass edge on slopes */}
           <path
-            d="M-50 525 Q0 505 100 475 Q200 450 300 435 Q450 425 600 430 Q750 425 900 435 Q1000 450 1100 475 Q1200 505 1250 525 L1250 542 Q1200 520 1100 490 Q1000 465 900 450 Q750 440 600 445 Q450 440 300 450 Q200 465 100 490 Q0 520 -50 542Z"
+            d="M-50 345 L420 565 L780 565 L1250 345 L1250 355 L780 575 L420 575 L-50 355Z"
             fill="url(#grassGrad)"
             opacity="0.6"
           />
+          {/* Plateau surface detail */}
           <path
-            d="M550 430 Q575 432 600 434 Q625 432 650 430"
+            d="M450 565 Q600 570 750 565"
             fill="none"
-            stroke="rgba(100, 90, 140, 0.12)"
+            stroke="rgba(100, 90, 140, 0.15)"
             strokeWidth="3"
             strokeLinecap="round"
           />
+          {/* Left slope texture lines */}
+          <line x1="100" y1="395" x2="120" y2="405" stroke="rgba(100, 90, 140, 0.08)" strokeWidth="1.5" />
+          <line x1="200" y1="440" x2="225" y2="452" stroke="rgba(100, 90, 140, 0.08)" strokeWidth="1.5" />
+          <line x1="300" y1="485" x2="330" y2="500" stroke="rgba(100, 90, 140, 0.08)" strokeWidth="1.5" />
+          {/* Right slope texture lines */}
+          <line x1="1100" y1="395" x2="1080" y2="405" stroke="rgba(100, 90, 140, 0.08)" strokeWidth="1.5" />
+          <line x1="1000" y1="440" x2="975" y2="452" stroke="rgba(100, 90, 140, 0.08)" strokeWidth="1.5" />
+          <line x1="900" y1="485" x2="870" y2="500" stroke="rgba(100, 90, 140, 0.08)" strokeWidth="1.5" />
         </g>
 
         {/* Trees */}
@@ -335,12 +346,12 @@ export default function ValleyBackground({ children, shaking }) {
         {/* Dust motes */}
         <g style={{ transform: `translate(${px * -25}px, ${py * -12}px)` }} opacity="0.3">
           {[
-            { cx: 100, cy: 480, r: 1 },
-            { cx: 300, cy: 460, r: 0.8 },
-            { cx: 500, cy: 470, r: 1.2 },
-            { cx: 700, cy: 455, r: 0.7 },
-            { cx: 900, cy: 465, r: 1 },
-            { cx: 1100, cy: 480, r: 0.9 },
+            { cx: 150, cy: 410, r: 1 },
+            { cx: 250, cy: 455, r: 0.8 },
+            { cx: 350, cy: 500, r: 1.2 },
+            { cx: 850, cy: 500, r: 0.7 },
+            { cx: 950, cy: 455, r: 1 },
+            { cx: 1050, cy: 410, r: 0.9 },
           ].map((p, i) => (
             <circle key={`dust-${i}`} cx={p.cx} cy={p.cy} r={p.r} fill="#aabbcc">
               <animate attributeName="cy" values={`${p.cy};${p.cy - 8};${p.cy}`} dur={`${5 + i}s`} repeatCount="indefinite" />
