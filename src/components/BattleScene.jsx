@@ -7,24 +7,40 @@ import BulletAnimation from './BulletAnimation';
 import Explosion from './Explosion';
 import useGameStore from '@/stores/gameStore';
 
-// Percentage-based positions in a 1000x1000 virtual grid
-// Tanks arranged in a V-formation on each slope
+// Tank positions calculated to sit on the \__/ slopes
+// SVG valley: left ridge at x=0,y=340 slopes down to plateau at x=420,y=560
+// Right ridge at x=1250,y=340 slopes down to plateau at x=780,y=560
+// In 1000-unit virtual space, proportionally:
+// Left slope: x=0→336, y=485→800  |  Right slope: x=624→1000, y=800→485
+// Plateau: x=336→624, y=800
+
+function getSlopeY(x) {
+  // Left slope: from (0, 485) to (336, 800)
+  if (x <= 336) {
+    return 485 + (x / 336) * (800 - 485);
+  }
+  // Plateau
+  if (x <= 624) {
+    return 800;
+  }
+  // Right slope: from (624, 800) to (1000, 485)
+  return 800 - ((x - 624) / (1000 - 624)) * (800 - 485);
+}
+
 const TANK_POSITIONS_LEFT = [
-  { x: 80, y: 58 },  { x: 155, y: 53 }, { x: 230, y: 50 },
-  { x: 65, y: 70 },  { x: 140, y: 66 }, { x: 215, y: 63 },
-];
+  { x: 60 },  { x: 130 }, { x: 200 },   // Top row (higher on slope)
+  { x: 90 },  { x: 160 }, { x: 235 },   // Bottom row (lower on slope)
+].map((t, i) => ({ x: t.x, y: getSlopeY(t.x) - (i < 3 ? 130 : 85) }));
 
 const TANK_POSITIONS_RIGHT = [
-  { x: 770, y: 50 }, { x: 845, y: 53 }, { x: 920, y: 58 },
-  { x: 785, y: 63 }, { x: 860, y: 66 }, { x: 935, y: 70 },
-];
+  { x: 800 }, { x: 870 }, { x: 940 },   // Top row
+  { x: 770 }, { x: 840 }, { x: 905 },   // Bottom row
+].map((t, i) => ({ x: t.x, y: getSlopeY(t.x) - (i < 3 ? 130 : 85) }));
 
-function getPixelPosition(pos, container) {
-  if (!container) return { x: 0, y: 0 };
-  const rect = container.getBoundingClientRect();
+function getPixelPosition(pos, containerWidth, containerHeight) {
   return {
-    x: (pos.x / 1000) * rect.width,
-    y: (pos.y / 100) * rect.height,
+    x: (pos.x / 1000) * containerWidth,
+    y: (pos.y / 1000) * containerHeight,
   };
 }
 
@@ -53,6 +69,7 @@ export default function BattleScene({ onRollDice }) {
   const [highlightTarget, setHighlightTarget] = useState(null);
   const [hitTank, setHitTank] = useState(null);
   const [announcement, setAnnouncement] = useState('');
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
   const containerRef = useRef(null);
   const timersRef = useRef([]);
@@ -72,6 +89,26 @@ export default function BattleScene({ onRollDice }) {
   useEffect(() => {
     return () => clearTimers();
   }, [clearTimers]);
+
+  // ResizeObserver for live reflow
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        setContainerSize({ width, height });
+      }
+    });
+    observer.observe(el);
+
+    // Initial measurement
+    const rect = el.getBoundingClientRect();
+    setContainerSize({ width: rect.width, height: rect.height });
+
+    return () => observer.disconnect();
+  }, []);
 
   const handleRoll = useCallback(() => {
     if (!isMyTurn || animationPlaying || rolling) return;
@@ -121,10 +158,9 @@ export default function BattleScene({ onRollDice }) {
 
       addTimer(() => {
         setHighlightTarget(targetIdx);
-        const container = containerRef.current;
-        if (!container) return;
-        const from = getPixelPosition(shooterPositions[shooterIdx], container);
-        const to = getPixelPosition(targetPositions[targetIdx], container);
+        if (!containerSize.width) return;
+        const from = getPixelPosition(shooterPositions[shooterIdx], containerSize.width, containerSize.height);
+        const to = getPixelPosition(targetPositions[targetIdx], containerSize.width, containerSize.height);
         setBulletFrom(from);
         setBulletTo(to);
         setBulletUrl(diceResults.shooterBulletUrl || shooterTanks[shooterIdx]?.bulletUrl || null);
@@ -269,17 +305,16 @@ export default function BattleScene({ onRollDice }) {
           </div>
         </div>
 
-        {/* ═══ TANKS — LEFT SIDE (You) ═══ */}
-        {myTanks.map((tank, i) => {
-          if (!containerRef.current) return null;
-          const pos = getPixelPosition(TANK_POSITIONS_LEFT[i], containerRef.current);
+        {/* TANKS — LEFT SIDE (You) */}
+        {containerSize.width > 0 && myTanks.map((tank, i) => {
+          const pos = getPixelPosition(TANK_POSITIONS_LEFT[i], containerSize.width, containerSize.height);
           return (
             <div
               key={`my-${i}`}
               className="absolute transition-all duration-300"
               style={{
-                left: pos.x - 44,
-                top: pos.y - 36,
+                left: pos.x - 52,
+                top: pos.y - 44,
                 zIndex: 20,
               }}
             >
@@ -295,17 +330,16 @@ export default function BattleScene({ onRollDice }) {
           );
         })}
 
-        {/* ═══ TANKS — RIGHT SIDE (Enemy) ═══ */}
-        {opponentTanks.map((tank, i) => {
-          if (!containerRef.current) return null;
-          const pos = getPixelPosition(TANK_POSITIONS_RIGHT[i], containerRef.current);
+        {/* TANKS — RIGHT SIDE (Enemy) */}
+        {containerSize.width > 0 && opponentTanks.map((tank, i) => {
+          const pos = getPixelPosition(TANK_POSITIONS_RIGHT[i], containerSize.width, containerSize.height);
           return (
             <div
               key={`opp-${i}`}
               className="absolute transition-all duration-300"
               style={{
-                left: pos.x - 44,
-                top: pos.y - 36,
+                left: pos.x - 52,
+                top: pos.y - 44,
                 zIndex: 20,
               }}
             >
