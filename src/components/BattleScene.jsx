@@ -76,13 +76,19 @@ export default function BattleScene({ onRollDice }) {
   const handleRoll = useCallback(() => {
     if (!isMyTurn || animationPlaying || rolling) return;
     setRolling(true);
-    setAnimationPlaying(true);
     onRollDice();
-  }, [isMyTurn, animationPlaying, rolling, onRollDice, setAnimationPlaying]);
+  }, [isMyTurn, animationPlaying, rolling, onRollDice]);
 
   // Handle dice result and trigger animation sequence
   useEffect(() => {
-    if (!diceResults || !rolling) return;
+    if (!diceResults) return;
+
+    // If we were rolling (attacker), stop the dice spin
+    if (rolling) setRolling(false);
+
+    // Prevent duplicate triggers
+    if (animationPlaying && !rolling) return;
+    setAnimationPlaying(true);
 
     try {
       const isMyAttack = diceResults.attackerId === playerId;
@@ -97,7 +103,6 @@ export default function BattleScene({ onRollDice }) {
       if (shooterIdx == null || targetIdx == null ||
           shooterIdx < 0 || shooterIdx >= shooterPositions.length ||
           targetIdx < 0 || targetIdx >= targetPositions.length) {
-        setRolling(false);
         setAnimationPlaying(false);
         return;
       }
@@ -106,7 +111,6 @@ export default function BattleScene({ onRollDice }) {
       setIsKingShot(kingShot);
 
       addTimer(() => {
-        setRolling(false);
         setHighlightShooter(shooterIdx);
         setAnnouncement(
           isMyAttack
@@ -123,12 +127,11 @@ export default function BattleScene({ onRollDice }) {
         const to = getPixelPosition(targetPositions[targetIdx], container);
         setBulletFrom(from);
         setBulletTo(to);
-        setBulletUrl(shooterTanks[shooterIdx]?.bulletUrl || null);
+        setBulletUrl(diceResults.shooterBulletUrl || shooterTanks[shooterIdx]?.bulletUrl || null);
         setBulletActive(true);
       }, 3000);
     } catch (err) {
       console.error('BattleScene animation error:', err);
-      setRolling(false);
       setAnimationPlaying(false);
     }
 
