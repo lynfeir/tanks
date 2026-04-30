@@ -6,6 +6,7 @@ import DiceRoller from './DiceRoller';
 import BulletAnimation from './BulletAnimation';
 import Explosion from './Explosion';
 import useGameStore from '@/stores/gameStore';
+import sfx from '@/lib/audio';
 
 // Tank positions calculated to sit on the \__/ slopes
 // SVG valley: left ridge at x=0,y=340 slopes down to plateau at x=420,y=560
@@ -112,6 +113,8 @@ export default function BattleScene({ onRollDice }) {
 
   const handleRoll = useCallback(() => {
     if (!isMyTurn || animationPlaying || rolling) return;
+    sfx.unlock();
+    sfx.dice();
     setRolling(true);
     onRollDice();
   }, [isMyTurn, animationPlaying, rolling, onRollDice]);
@@ -165,6 +168,8 @@ export default function BattleScene({ onRollDice }) {
         setBulletTo(to);
         setBulletUrl(diceResults.shooterBulletUrl || shooterTanks[shooterIdx]?.bulletUrl || null);
         setBulletActive(true);
+        sfx.shoot();
+        sfx.whoosh(kingShot ? 0.55 : 0.75);
       }, 3000);
     } catch (err) {
       console.error('BattleScene animation error:', err);
@@ -186,6 +191,14 @@ export default function BattleScene({ onRollDice }) {
       setAnnouncement(
         isKingShot ? 'KING SHOT! One-hit KO!' : 'Direct hit!'
       );
+
+      // Audio + game-feel
+      if (isKingShot) {
+        sfx.kingShot();
+      } else {
+        sfx.hit();
+      }
+      sfx.explode();
     }
   }, [bulletTo, diceResults, isKingShot]);
 

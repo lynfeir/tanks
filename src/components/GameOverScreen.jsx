@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import useGameStore from '@/stores/gameStore';
+import sfx from '@/lib/audio';
 
 export default function GameOverScreen() {
   const myTanks = useGameStore((s) => s.myTanks);
@@ -28,8 +29,13 @@ export default function GameOverScreen() {
   useEffect(() => {
     const t1 = setTimeout(() => setShowContent(true), 400);
     const t2 = setTimeout(() => setShowStats(true), 1200);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, []);
+    // Victory / defeat sting plays as the title appears
+    const t3 = setTimeout(() => {
+      if (isWinner) sfx.victory();
+      else sfx.defeat();
+    }, 500);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, [isWinner]);
 
   // Particle animation
   useEffect(() => {

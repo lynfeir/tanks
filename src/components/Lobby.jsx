@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import useGameStore from '@/stores/gameStore';
+import sfx from '@/lib/audio';
 
 export default function Lobby({ onCreateRoom, onJoinRoom }) {
   const [mode, setMode] = useState(null);
@@ -12,12 +13,16 @@ export default function Lobby({ onCreateRoom, onJoinRoom }) {
 
   const handleCreate = () => {
     if (!name.trim()) return;
+    sfx.unlock();
+    sfx.uiBlip();
     setLoading(true);
     onCreateRoom(name.trim());
   };
 
   const handleJoin = () => {
     if (!name.trim() || !roomCode.trim()) return;
+    sfx.unlock();
+    sfx.uiBlip();
     setLoading(true);
     onJoinRoom(roomCode.trim().toUpperCase(), name.trim());
   };
