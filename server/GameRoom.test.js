@@ -117,6 +117,51 @@ test('drawing time defaults to 120 and accepts allowlist values', () => {
   r4.cleanup();
 });
 
+test('spectator: addSpectator returns success and includes spectator in broadcast', () => {
+  const room = new GameRoom('ROOM11');
+  const p1ws = createSocket();
+  const p2ws = createSocket();
+  room.addPlayer('p1', 'Alice', p1ws);
+  room.addPlayer('p2', 'Bob', p2ws);
+
+  // Track sends to spectator
+  let specReceivedTypes = [];
+  const specWs = {
+    readyState: 1,
+    send(data) {
+      specReceivedTypes.push(JSON.parse(data).type);
+    },
+  };
+
+  const result = room.addSpectator(specWs);
+  assert.equal(result.success, true);
+  assert.ok(specReceivedTypes.includes('SYNC_STATE'), 'spectator gets initial SYNC_STATE');
+  assert.equal(room.spectators.size, 1);
+
+  // Subsequent broadcasts reach the spectator
+  specReceivedTypes = [];
+  room.broadcast('PHASE_CHANGE', { phase: 'battle' });
+  assert.ok(specReceivedTypes.includes('PHASE_CHANGE'), 'spectator receives broadcasts');
+
+  // Removing
+  room.removeSpectator(specWs);
+  assert.equal(room.spectators.size, 0);
+
+  room.cleanup();
+});
+
+test('spectator: rejected if match is over', () => {
+  const room = new GameRoom('ROOM12');
+  room.addPlayer('p1', 'Alice', createSocket());
+  room.addPlayer('p2', 'Bob', createSocket());
+  room.phase = 'game_over';
+
+  const result = room.addSpectator({ readyState: 1, send() {} });
+  assert.ok(result.error, 'rejects when game is over');
+
+  room.cleanup();
+});
+
 test('match analytics: counters track turns/king-shots/bonuses', () => {
   const room = new GameRoom('ROOM10');
   room.addPlayer('p1', 'Alice', createSocket());

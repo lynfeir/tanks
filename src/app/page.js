@@ -19,12 +19,13 @@ export default function Home() {
   const roomCode = useGameStore((s) => s.roomCode);
   const players = useGameStore((s) => s.players);
   const reconnecting = useGameStore((s) => s.reconnecting);
+  const isSpectator = useGameStore((s) => s.isSpectator);
   const [helpOpen, setHelpOpen] = useState(false);
 
   const { createRoom, joinRoom, submitDrawings, selectKing, rollDice } = useWebSocket();
 
   const playerCount = Object.keys(players).length;
-  const inLobbyWaiting = phase === GAME_PHASES.LOBBY && roomCode && playerCount < 2;
+  const inLobbyWaiting = phase === GAME_PHASES.LOBBY && roomCode && playerCount < 2 && !isSpectator;
 
   // Handle King Selection with store update
   const handleSelectKing = (tankIndex) => {
@@ -60,19 +61,24 @@ export default function Home() {
       )}
 
       {/* Phase rendering */}
-      {phase === GAME_PHASES.LOBBY && !roomCode && (
+      {phase === GAME_PHASES.LOBBY && !roomCode && !isSpectator && (
         <Lobby onCreateRoom={createRoom} onJoinRoom={joinRoom} />
       )}
 
       {inLobbyWaiting && <WaitingRoom />}
 
-      {phase === GAME_PHASES.DRAWING && (
+      {/* Spectator placeholders for pre-battle phases */}
+      {isSpectator && phase !== GAME_PHASES.BATTLE && phase !== GAME_PHASES.GAME_OVER && (
+        <SpectatorWaiting phase={phase} />
+      )}
+
+      {phase === GAME_PHASES.DRAWING && !isSpectator && (
         <ErrorBoundary>
           <DrawingPhase onSubmit={submitDrawings} />
         </ErrorBoundary>
       )}
 
-      {phase === GAME_PHASES.KING_SELECTION && (
+      {phase === GAME_PHASES.KING_SELECTION && !isSpectator && (
         <ErrorBoundary>
           <KingSelection onSelectKing={handleSelectKing} />
         </ErrorBoundary>
@@ -90,5 +96,37 @@ export default function Home() {
         </ErrorBoundary>
       )}
     </main>
+  );
+}
+
+function SpectatorWaiting({ phase }) {
+  const messages = {
+    [GAME_PHASES.LOBBY]: 'JOINING ROOM...',
+    [GAME_PHASES.DRAWING]: 'PLAYERS ARE DRAWING THEIR TANKS',
+    [GAME_PHASES.KING_SELECTION]: 'PLAYERS ARE CHOOSING THEIR KING',
+  };
+  const subtext = {
+    [GAME_PHASES.LOBBY]: 'Connecting to match...',
+    [GAME_PHASES.DRAWING]: 'Battle starts when both players finish.',
+    [GAME_PHASES.KING_SELECTION]: 'Each player crowns one tank as king.',
+  };
+  return (
+    <div className="min-h-screen flex items-center justify-center pixel-grid-bg p-4"
+      style={{ background: 'var(--bg-primary)' }}>
+      <div className="pixel-panel p-8 text-center max-w-md">
+        <div className="font-pixel text-[10px] mb-3" style={{ color: 'var(--king-gold)' }}>
+          {'[ SPECTATING ]'}
+        </div>
+        <h2 className="font-pixel text-sm mb-4" style={{ color: 'var(--accent)' }}>
+          {messages[phase] || 'WAITING...'}
+        </h2>
+        <p className="font-mono text-xs" style={{ color: 'var(--text-secondary)' }}>
+          {subtext[phase] || 'Please stand by.'}
+        </p>
+        <div className="font-pixel text-[8px] mt-6 animate-blink" style={{ color: 'var(--text-secondary)' }}>
+          . . .
+        </div>
+      </div>
+    </div>
   );
 }

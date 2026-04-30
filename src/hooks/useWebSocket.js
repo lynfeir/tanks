@@ -91,6 +91,13 @@ export default function useWebSocket() {
           s.setReconnecting(false);
           break;
 
+        case WS_MESSAGES.SPECTATOR_JOINED:
+          // Quiet info — only toast if we're a player
+          if (!s.isSpectator && msg.payload?.count > 0) {
+            s.addToast(`${msg.payload.count} watching`, 'info');
+          }
+          break;
+
         case WS_MESSAGES.PONG:
           break;
 
@@ -106,6 +113,23 @@ export default function useWebSocket() {
         const s = storeRef.current;
         s.setConnected(true);
         s.setReconnecting(false);
+
+        // Auto-spectate if the URL has ?spectate=CODE
+        if (typeof window !== 'undefined' && !s.isSpectator && !s.playerId) {
+          try {
+            const params = new URLSearchParams(window.location.search);
+            const spectateCode = params.get('spectate');
+            if (spectateCode) {
+              const code = spectateCode.toUpperCase();
+              s.setIsSpectator(true);
+              // Store the room code immediately so the HUD pill can show it
+              s.setConnection(code, null);
+              sendMessage(WS_MESSAGES.SPECTATE, { roomCode: code });
+            }
+          } catch (e) {
+            console.error('Failed to parse spectate param:', e);
+          }
+        }
       },
       () => {
         const s = storeRef.current;
@@ -114,7 +138,7 @@ export default function useWebSocket() {
       },
       () => {
         const s = storeRef.current;
-        if (!s.roomCode || !s.playerId) {
+        if (!s.roomCode || (!s.playerId && !s.isSpectator)) {
           s.addToast('Connection error', 'error');
         }
       }

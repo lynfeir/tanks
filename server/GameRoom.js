@@ -27,6 +27,7 @@ class GameRoom {
     this.createdAt = Date.now();
     this.lastActivity = Date.now();
     this.rollInProgress = false;
+    this.spectators = new Set(); // websockets, not players
 
     // Host-configurable drawing time, validated against allowlist
     const requestedTime = Number(options.drawingTimeSeconds);
@@ -409,13 +410,78 @@ class GameRoom {
     }
   }
 
+  sendToSpectator(ws, type, payload) {
+    try {
+      if (ws?.readyState === 1) {
+        ws.send(JSON.stringify({ type, payload }));
+      }
+    } catch (e) {
+      console.error('Send to spectator failed:', e.message);
+    }
+  }
+
+  broadcastToSpectators(type, payload) {
+    for (const ws of this.spectators) {
+      this.sendToSpectator(ws, type, payload);
+    }
+  }
+
   broadcast(type, payload) {
     for (const pid of this.playerOrder) this.sendTo(pid, type, payload);
+    this.broadcastToSpectators(type, payload);
   }
 
   broadcastToOthers(excludeId, type, payload) {
     for (const pid of this.playerOrder) {
       if (pid !== excludeId) this.sendTo(pid, type, payload);
+    }
+    // Spectators always see everything
+    this.broadcastToSpectators(type, payload);
+  }
+
+  addSpectator(ws) {
+    if (this.phase === PHASES.GAME_OVER) {
+      return { error: 'Match is over' };
+    }
+    this.spectators.add(ws);
+    this.touch();
+
+    // Send the spectator a current snapshot from player 1's perspective.
+    // Spectators see "myTanks" = p1's tanks, "opponentTanks" = p2's.
+    const p1 = this.playerOrder[0];
+    if (p1) {
+      const state = this.getState(p1);
+      // Make sure spectator-visible opponent tanks include image data (they're the
+      // observer, both sides should be fully visible).
+      this.sendToSpectator(ws, 'SYNC_STATE', { ...state, isSpectator: true });
+    } else {
+      this.sendToSpectator(ws, 'SYNC_STATE', {
+        phase: this.phase,
+        roomCode: this.roomCode,
+        players: {},
+        myTanks: [],
+        opponentTanks: [],
+        currentTurn: null,
+        bonusRollsLeft: {},
+        isSpectator: true,
+      });
+    }
+
+    // Notify both players a spectator joined (for a small toast)
+    for (const pid of this.playerOrder) {
+      this.sendTo(pid, 'SPECTATOR_JOINED', { count: this.spectators.size });
+    }
+
+    return { success: true };
+  }
+
+  removeSpectator(ws) {
+    if (this.spectators.has(ws)) {
+      this.spectators.delete(ws);
+      // Quietly notify players the count dropped
+      for (const pid of this.playerOrder) {
+        this.sendTo(pid, 'SPECTATOR_JOINED', { count: this.spectators.size });
+      }
     }
   }
 
@@ -431,6 +497,7 @@ class GameRoom {
     Object.values(this.disconnectTimers).forEach(clearTimeout);
     this.disconnectTimers = {};
     if (this.turnTimer) clearTimeout(this.turnTimer);
+    this.spectators.clear();
   }
 }
 

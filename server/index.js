@@ -44,6 +44,7 @@ setInterval(() => {
 wss.on('connection', (ws) => {
   let currentPlayerId = null;
   let currentRoomCode = null;
+  let isSpectator = false;
 
   ws.isAlive = true;
   ws.missedPongs = 0;
@@ -213,6 +214,28 @@ wss.on('connection', (ws) => {
         break;
       }
 
+      case 'SPECTATE': {
+        const roomCode = payload?.roomCode?.toUpperCase();
+        if (!roomCode) {
+          sendError(ws, 'Room code is required');
+          return;
+        }
+        const room = rooms.get(roomCode);
+        if (!room) {
+          sendError(ws, 'Room not found');
+          return;
+        }
+        const result = room.addSpectator(ws);
+        if (result.error) {
+          sendError(ws, result.error);
+          return;
+        }
+        currentRoomCode = roomCode;
+        isSpectator = true;
+        console.log(`Spectator joined room ${roomCode}`);
+        break;
+      }
+
       case 'PING':
         send(ws, 'PONG', {});
         break;
@@ -236,6 +259,14 @@ wss.on('connection', (ws) => {
   });
 
   ws.on('close', () => {
+    if (isSpectator && currentRoomCode) {
+      const room = rooms.get(currentRoomCode);
+      if (room) {
+        room.removeSpectator(ws);
+        console.log(`Spectator left room ${currentRoomCode}`);
+      }
+      return;
+    }
     if (currentPlayerId && currentRoomCode) {
       const room = rooms.get(currentRoomCode);
       if (room) {

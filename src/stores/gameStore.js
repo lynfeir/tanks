@@ -19,6 +19,7 @@ const useGameStore = create((set, get) => ({
   playerName: '',
   connected: false,
   reconnecting: false,
+  isSpectator: false,
 
   // Game phase
   phase: GAME_PHASES.LOBBY,
@@ -162,6 +163,8 @@ const useGameStore = create((set, get) => ({
   setDrawingTimeSeconds: (seconds) =>
     set({ drawingTimeSeconds: Number(seconds) > 0 ? Number(seconds) : DEFAULT_DRAWING_TIME }),
 
+  setIsSpectator: (value) => set({ isSpectator: !!value }),
+
   addToast: (message, type = 'info') =>
     set((state) => ({
       toasts: [...state.toasts, { id: Date.now(), message, type }],
@@ -190,21 +193,26 @@ const useGameStore = create((set, get) => ({
       gameOverData: null,
       killFeed: [],
       bonusRollsLeft: {},
+      isSpectator: false,
       error: null,
     }),
 
   syncState: (serverState) =>
     set((state) => {
       const serverPlayers = serverState.players || {};
+      const isSpectator = serverState.isSpectator === true || state.isSpectator;
 
       return {
         phase: serverState.phase,
         players: serverPlayers,
+        roomCode: serverState.roomCode || state.roomCode,
         currentTurn: serverState.currentTurn,
-        isMyTurn: serverState.currentTurn === state.playerId,
+        isMyTurn: !isSpectator && serverState.currentTurn === state.playerId,
         myTanks: serverState.myTanks || state.myTanks,
         opponentTanks: serverState.opponentTanks || state.opponentTanks,
         bonusRollsLeft: serverState.bonusRollsLeft || state.bonusRollsLeft,
+        isSpectator,
+        connected: true,
       };
     }),
 }));

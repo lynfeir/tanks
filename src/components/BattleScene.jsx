@@ -59,9 +59,17 @@ export default function BattleScene({ onRollDice }) {
   const setAnimationPlaying = useGameStore((s) => s.setAnimationPlaying);
   const animationPlaying = useGameStore((s) => s.animationPlaying);
   const bonusRollsLeft = useGameStore((s) => s.bonusRollsLeft);
-  const myBonus = bonusRollsLeft?.[playerId] ?? 0;
-  const oppId = Object.values(players).find((p) => p.id !== playerId)?.id;
-  const oppBonus = oppId ? bonusRollsLeft?.[oppId] ?? 0 : 0;
+  const isSpectator = useGameStore((s) => s.isSpectator);
+
+  // Resolve "left side" and "right side" players for both player and spectator views.
+  // Players: left = me, right = opponent. Spectators: left = p1, right = p2.
+  const playerList = Object.values(players);
+  const leftPlayerId = isSpectator ? playerList[0]?.id : playerId;
+  const rightPlayerId = isSpectator
+    ? playerList[1]?.id
+    : playerList.find((p) => p.id !== playerId)?.id;
+  const myBonus = leftPlayerId ? bonusRollsLeft?.[leftPlayerId] ?? 0 : 0;
+  const oppBonus = rightPlayerId ? bonusRollsLeft?.[rightPlayerId] ?? 0 : 0;
 
   const [rolling, setRolling] = useState(false);
   const [shaking, setShaking] = useState(false);
@@ -262,12 +270,18 @@ export default function BattleScene({ onRollDice }) {
   const myAlive = myTanks.filter((t) => !t.destroyed).length;
   const oppAlive = opponentTanks.filter((t) => !t.destroyed).length;
 
-  const currentTurnName = currentTurn
-    ? (currentTurn === playerId ? 'YOUR' : "ENEMY'S")
-    : '';
+  const myName = isSpectator
+    ? (playerList[0]?.name || 'P1')
+    : (playerList.find((p) => p.id === playerId)?.name || 'You');
+  const oppName = isSpectator
+    ? (playerList[1]?.name || 'P2')
+    : (playerList.find((p) => p.id !== playerId)?.name || 'Opponent');
 
-  const myName = Object.values(players).find(p => p.id === playerId)?.name || 'You';
-  const oppName = Object.values(players).find(p => p.id !== playerId)?.name || 'Opponent';
+  const currentTurnName = currentTurn
+    ? isSpectator
+      ? `${currentTurn === leftPlayerId ? myName : oppName}'S`
+      : (currentTurn === playerId ? 'YOUR' : "ENEMY'S")
+    : '';
 
   return (
     <ValleyBackground shaking={shaking}>
@@ -296,7 +310,7 @@ export default function BattleScene({ onRollDice }) {
                   }}>
                   {myAlive}
                 </div>
-                {currentTurn === playerId && (
+                {currentTurn === leftPlayerId && currentTurn && (
                   <div className="absolute -top-1 -right-1 w-3 h-3 animate-blink"
                     style={{ background: 'var(--success)' }} />
                 )}
@@ -333,7 +347,7 @@ export default function BattleScene({ onRollDice }) {
                   border: '2px solid var(--pixel-border)',
                 }}>
                 <div className="font-pixel text-[8px] sm:text-[10px] animate-blink whitespace-nowrap"
-                  style={{ color: currentTurn === playerId ? 'var(--success)' : 'var(--danger)' }}>
+                  style={{ color: currentTurn === leftPlayerId ? 'var(--success)' : 'var(--danger)' }}>
                   {'>> '}{currentTurnName} TURN{' <<'}
                 </div>
                 {announcement && (
@@ -378,7 +392,7 @@ export default function BattleScene({ onRollDice }) {
                   }}>
                   {oppAlive}
                 </div>
-                {currentTurn && currentTurn !== playerId && (
+                {currentTurn === rightPlayerId && currentTurn && (
                   <div className="absolute -top-1 -right-1 w-3 h-3 animate-blink"
                     style={{ background: 'var(--danger)' }} />
                 )}
@@ -511,7 +525,7 @@ export default function BattleScene({ onRollDice }) {
             </div>
           )}
 
-          {!isMyTurn && !animationPlaying && (
+          {!isMyTurn && !animationPlaying && !isSpectator && (
             <div className="px-10 py-4 text-center"
               style={{
                 background: 'var(--bg-primary)',
@@ -522,6 +536,22 @@ export default function BattleScene({ onRollDice }) {
               </p>
               <div className="font-pixel text-[8px] mt-2 animate-blink" style={{ color: 'var(--accent)' }}>
                 . . .
+              </div>
+            </div>
+          )}
+
+          {isSpectator && !animationPlaying && (
+            <div className="px-8 py-3 text-center"
+              style={{
+                background: 'var(--bg-primary)',
+                border: '2px solid var(--king-gold)',
+                boxShadow: '0 0 16px rgba(255, 204, 0, 0.25)',
+              }}>
+              <p className="font-pixel text-[10px]" style={{ color: 'var(--king-gold)' }}>
+                {'[ SPECTATING ]'}
+              </p>
+              <div className="font-pixel text-[7px] mt-2" style={{ color: 'var(--text-secondary)' }}>
+                {currentTurnName} TURN
               </div>
             </div>
           )}

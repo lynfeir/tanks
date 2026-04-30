@@ -13,7 +13,9 @@ const MUTE_STORAGE_KEY = 'tanks:muted';
 export default function HUD({ onOpenHelp }) {
   const roomCode = useGameStore((s) => s.roomCode);
   const phase = useGameStore((s) => s.phase);
+  const isSpectator = useGameStore((s) => s.isSpectator);
   const [copied, setCopied] = useState(false);
+  const [watchCopied, setWatchCopied] = useState(false);
   const [muted, setMuted] = useState(false);
 
   // Hydrate mute from localStorage on mount
@@ -76,29 +78,73 @@ export default function HUD({ onOpenHelp }) {
     setTimeout(() => setCopied(false), 1500);
   }, [roomCode]);
 
+  const copyWatchLink = useCallback(async () => {
+    if (!roomCode || typeof window === 'undefined') return;
+    const url = `${window.location.origin}${window.location.pathname}?spectate=${roomCode}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    setWatchCopied(true);
+    setTimeout(() => setWatchCopied(false), 1500);
+  }, [roomCode]);
+
   return (
     <>
-      {/* Room-code pill — only when a room is joined */}
+      {/* Room-code pill + watch-link / spectator badge */}
       {roomCode && (
-        <button
-          onClick={copyCode}
-          className="fixed top-3 left-3 z-[60] px-3 py-2 transition-all hover:opacity-90"
-          style={{
-            background: 'var(--bg-primary)',
-            border: '2px solid var(--accent)',
-            boxShadow: '0 2px 0 0 #0a0a1a',
-            cursor: 'pointer',
-          }}
-          title="Click to copy room code"
-        >
-          <div className="font-pixel text-[7px] mb-1" style={{ color: 'var(--text-secondary)' }}>
-            ROOM
-          </div>
-          <div className="font-pixel text-[10px] tracking-[0.25em]"
-            style={{ color: copied ? 'var(--success)' : 'var(--accent)' }}>
-            {copied ? 'COPIED!' : roomCode}
-          </div>
-        </button>
+        <div className="fixed top-3 left-3 z-[60] flex flex-col gap-1 items-start">
+          <button
+            onClick={copyCode}
+            className="px-3 py-2 transition-all hover:opacity-90"
+            style={{
+              background: 'var(--bg-primary)',
+              border: '2px solid var(--accent)',
+              boxShadow: '0 2px 0 0 #0a0a1a',
+              cursor: 'pointer',
+            }}
+            title="Click to copy room code"
+          >
+            <div className="font-pixel text-[7px] mb-1" style={{ color: 'var(--text-secondary)' }}>
+              ROOM
+            </div>
+            <div className="font-pixel text-[10px] tracking-[0.25em]"
+              style={{ color: copied ? 'var(--success)' : 'var(--accent)' }}>
+              {copied ? 'COPIED!' : roomCode}
+            </div>
+          </button>
+
+          {isSpectator ? (
+            <div className="px-2 py-1 font-pixel text-[7px]"
+              style={{
+                background: 'var(--bg-primary)',
+                border: '2px solid var(--king-gold)',
+                color: 'var(--king-gold)',
+              }}>
+              {'[ SPECTATING ]'}
+            </div>
+          ) : (
+            <button
+              onClick={copyWatchLink}
+              className="px-2 py-1 font-pixel text-[7px] transition-all hover:opacity-90"
+              style={{
+                background: 'var(--bg-primary)',
+                border: `2px solid ${watchCopied ? 'var(--success)' : 'var(--pixel-border)'}`,
+                color: watchCopied ? 'var(--success)' : 'var(--text-secondary)',
+                cursor: 'pointer',
+              }}
+              title="Copy a read-only watch link"
+            >
+              {watchCopied ? 'LINK COPIED!' : '+ WATCH LINK'}
+            </button>
+          )}
+        </div>
       )}
 
       {/* Mute toggle */}
