@@ -14,6 +14,21 @@ export default function useDrawingCanvas() {
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
 
+  const saveState = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const imageData = canvas.toDataURL();
+    setHistory((prev) => {
+      // Trim any redo branch using the prev length, not stale historyIndex
+      const newHistory = prev.slice(0, prev.length); // keep full history (we're appending)
+      newHistory.push(imageData);
+      // Cap history at 30 to bound memory
+      if (newHistory.length > 30) newHistory.shift();
+      return newHistory;
+    });
+    setHistoryIndex((prev) => prev + 1);
+  }, []);
+
   const initCanvas = useCallback((canvas) => {
     if (!canvas) return;
     canvasRef.current = canvas;
@@ -28,19 +43,7 @@ export default function useDrawingCanvas() {
 
     // Save initial blank state
     saveState();
-  }, []);
-
-  const saveState = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const imageData = canvas.toDataURL();
-    setHistory((prev) => {
-      const newHistory = prev.slice(0, historyIndex + 1);
-      newHistory.push(imageData);
-      return newHistory;
-    });
-    setHistoryIndex((prev) => prev + 1);
-  }, [historyIndex]);
+  }, [saveState]);
 
   const getPos = useCallback((e) => {
     const canvas = canvasRef.current;
