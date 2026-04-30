@@ -1,5 +1,5 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import useGameStore from '@/stores/gameStore';
 import useWebSocket from '@/hooks/useWebSocket';
 import Lobby from '@/components/Lobby';
@@ -10,6 +10,8 @@ import BattleScene from '@/components/BattleScene';
 import GameOverScreen from '@/components/GameOverScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import ToastContainer from '@/components/ui/Toast';
+import HUD from '@/components/HUD';
+import HelpOverlay from '@/components/HelpOverlay';
 import { GAME_PHASES } from '@/lib/constants';
 
 export default function Home() {
@@ -17,6 +19,7 @@ export default function Home() {
   const roomCode = useGameStore((s) => s.roomCode);
   const players = useGameStore((s) => s.players);
   const reconnecting = useGameStore((s) => s.reconnecting);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const { createRoom, joinRoom, submitDrawings, selectKing, rollDice } = useWebSocket();
 
@@ -32,6 +35,8 @@ export default function Home() {
   return (
     <main className="relative">
       <ToastContainer />
+      <HUD onOpenHelp={() => setHelpOpen(true)} />
+      <HelpOverlay open={helpOpen} onClose={() => setHelpOpen(false)} />
 
       {/* Reconnecting overlay */}
       {reconnecting && (
