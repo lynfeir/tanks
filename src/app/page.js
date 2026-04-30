@@ -35,13 +35,20 @@ export default function Home() {
 
       {/* Reconnecting overlay */}
       {reconnecting && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80">
-          <div className="glass-card p-8 text-center animate-fade-in">
-            <div className="w-10 h-10 border-3 border-t-transparent rounded-full animate-spin mx-auto mb-4"
-              style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
-            <h3 className="text-xl font-bold mb-2">Reconnecting...</h3>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              Trying to rejoin the game
+        <div className="fixed inset-0 z-[100] flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.85)' }}>
+          <div className="pixel-panel p-8 text-center animate-fade-in">
+            <div className="w-10 h-10 mx-auto mb-4 animate-spin"
+              style={{
+                border: '3px solid var(--accent)',
+                borderTopColor: 'transparent',
+                borderRadius: '50%',
+              }} />
+            <h3 className="font-pixel text-sm mb-3" style={{ color: 'var(--accent)' }}>
+              RECONNECTING...
+            </h3>
+            <p className="font-pixel text-[8px]" style={{ color: 'var(--text-secondary)' }}>
+              REJOINING MATCH
             </p>
           </div>
         </div>
