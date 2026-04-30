@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { GAME_PHASES, TANKS_PER_PLAYER, NORMAL_TANK_HP, KING_TANK_HP } from '@/lib/constants';
+import { GAME_PHASES, TANKS_PER_PLAYER, NORMAL_TANK_HP, KING_TANK_HP, DEFAULT_DRAWING_TIME } from '@/lib/constants';
 
 function createEmptyTanks() {
   return Array.from({ length: TANKS_PER_PLAYER }, (_, i) => ({
@@ -31,6 +31,7 @@ const useGameStore = create((set, get) => ({
   // Drawing
   currentDrawingIndex: 0,
   drawingType: 'tank', // 'tank' or 'bullet'
+  drawingTimeSeconds: DEFAULT_DRAWING_TIME,
 
   // Battle
   currentTurn: null,
@@ -157,6 +158,9 @@ const useGameStore = create((set, get) => ({
     })),
 
   setBonusRollsLeft: (map) => set({ bonusRollsLeft: map || {} }),
+
+  setDrawingTimeSeconds: (seconds) =>
+    set({ drawingTimeSeconds: Number(seconds) > 0 ? Number(seconds) : DEFAULT_DRAWING_TIME }),
 
   addToast: (message, type = 'info') =>
     set((state) => ({

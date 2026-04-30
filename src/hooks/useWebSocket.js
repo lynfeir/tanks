@@ -40,6 +40,9 @@ export default function useWebSocket() {
           if (msg.payload.bonusRollsLeft) {
             s.setBonusRollsLeft(msg.payload.bonusRollsLeft);
           }
+          if (msg.payload.drawingTimeSeconds) {
+            s.setDrawingTimeSeconds(msg.payload.drawingTimeSeconds);
+          }
           break;
 
         case WS_MESSAGES.DRAWINGS_RECEIVED:
@@ -123,8 +126,11 @@ export default function useWebSocket() {
     };
   }, []);
 
-  const createRoom = useCallback((playerName) => {
-    sendMessage(WS_MESSAGES.CREATE_ROOM, { playerName });
+  const createRoom = useCallback((playerName, options = {}) => {
+    sendMessage(WS_MESSAGES.CREATE_ROOM, {
+      playerName,
+      drawingTimeSeconds: Number(options.drawingTimeSeconds) || undefined,
+    });
   }, []);
 
   const joinRoom = useCallback((roomCode, playerName) => {

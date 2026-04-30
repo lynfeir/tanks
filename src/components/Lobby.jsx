@@ -2,12 +2,14 @@
 import { useState, useEffect } from 'react';
 import useGameStore from '@/stores/gameStore';
 import sfx from '@/lib/audio';
+import { DRAWING_TIME_OPTIONS, DEFAULT_DRAWING_TIME } from '@/lib/constants';
 
 export default function Lobby({ onCreateRoom, onJoinRoom }) {
   const [mode, setMode] = useState(null);
   const [name, setName] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [drawingTime, setDrawingTime] = useState(DEFAULT_DRAWING_TIME);
   const connected = useGameStore((s) => s.connected);
   const error = useGameStore((s) => s.error);
 
@@ -16,7 +18,7 @@ export default function Lobby({ onCreateRoom, onJoinRoom }) {
     sfx.unlock();
     sfx.uiBlip();
     setLoading(true);
-    onCreateRoom(name.trim());
+    onCreateRoom(name.trim(), { drawingTimeSeconds: drawingTime });
   };
 
   const handleJoin = () => {
@@ -104,7 +106,7 @@ export default function Lobby({ onCreateRoom, onJoinRoom }) {
             <p className="text-xs mb-6 font-mono" style={{ color: 'var(--text-secondary)' }}>
               Share the code with your friend
             </p>
-            <div className="p-3 mb-6" style={{
+            <div className="p-3 mb-4" style={{
               background: 'var(--bg-primary)',
               border: '2px solid var(--pixel-border)',
             }}>
@@ -112,6 +114,40 @@ export default function Lobby({ onCreateRoom, onJoinRoom }) {
                 PLAYER: <span style={{ color: 'var(--accent)' }}>{name}</span>
               </p>
             </div>
+
+            {/* Drawing timer picker */}
+            <div className="p-3 mb-6" style={{
+              background: 'var(--bg-primary)',
+              border: '2px solid var(--pixel-border)',
+            }}>
+              <p className="font-pixel text-[8px] mb-3" style={{ color: 'var(--text-secondary)' }}>
+                DRAW TIMER
+              </p>
+              <div className="flex gap-2">
+                {DRAWING_TIME_OPTIONS.map((sec) => {
+                  const selected = drawingTime === sec;
+                  const min = Math.floor(sec / 60);
+                  const rem = sec % 60;
+                  const label = rem === 0 ? `${min}M` : `${min}:${rem.toString().padStart(2, '0')}`;
+                  return (
+                    <button
+                      key={sec}
+                      type="button"
+                      onClick={() => { setDrawingTime(sec); sfx.uiBlip(); }}
+                      className="flex-1 py-2 font-pixel text-[9px] transition-all"
+                      style={{
+                        background: selected ? 'var(--accent)' : 'var(--bg-secondary)',
+                        color: selected ? '#fff' : 'var(--text-secondary)',
+                        border: `2px solid ${selected ? 'var(--accent)' : 'var(--pixel-border)'}`,
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <button
               className="btn-pixel w-full py-4"
               disabled={loading || !connected}

@@ -84,7 +84,9 @@ wss.on('connection', (ws) => {
         }
 
         const playerId = generatePlayerId();
-        const room = new GameRoom(roomCode);
+        const room = new GameRoom(roomCode, {
+          drawingTimeSeconds: Number(payload?.drawingTimeSeconds) || undefined,
+        });
         rooms.set(roomCode, room);
 
         const result = room.addPlayer(playerId, playerName, ws);

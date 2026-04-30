@@ -12,8 +12,11 @@ const KING_HP = 1;
 const DISCONNECT_GRACE_MS = 90000;
 const TURN_DELAY_MS = 4500;
 
+const DEFAULT_DRAWING_TIME = 120;
+const ALLOWED_DRAWING_TIMES = new Set([60, 120, 180]);
+
 class GameRoom {
-  constructor(roomCode) {
+  constructor(roomCode, options = {}) {
     this.roomCode = roomCode;
     this.phase = PHASES.LOBBY;
     this.players = {};
@@ -24,6 +27,17 @@ class GameRoom {
     this.createdAt = Date.now();
     this.lastActivity = Date.now();
     this.rollInProgress = false;
+
+    // Host-configurable drawing time, validated against allowlist
+    const requestedTime = Number(options.drawingTimeSeconds);
+    this.drawingTimeSeconds =
+      ALLOWED_DRAWING_TIMES.has(requestedTime) ? requestedTime : DEFAULT_DRAWING_TIME;
+
+    // Match analytics counters
+    this.matchStartedAt = null;
+    this.turnsCompleted = 0;
+    this.kingShotsFired = 0;
+    this.bonusRollsUsed = 0;
   }
 
   touch() {
@@ -61,7 +75,10 @@ class GameRoom {
 
     if (this.playerOrder.length === 2) {
       this.phase = PHASES.DRAWING;
-      this.broadcast('PHASE_CHANGE', { phase: PHASES.DRAWING });
+      this.broadcast('PHASE_CHANGE', {
+        phase: PHASES.DRAWING,
+        drawingTimeSeconds: this.drawingTimeSeconds,
+      });
     }
 
     return { success: true };
@@ -111,11 +128,13 @@ class GameRoom {
         const winnerId = this.playerOrder.find((id) => id !== playerId);
         if (winnerId) {
           this.phase = PHASES.GAME_OVER;
+          this.logMatchEnd('disconnect', winnerId);
           this.broadcast('GAME_OVER', {
             winnerId,
             loserId: playerId,
             reason: 'disconnect',
             stats: this.getStats(),
+            analytics: this.getMatchAnalytics('disconnect', winnerId),
           });
         }
       }
@@ -188,6 +207,7 @@ class GameRoom {
 
     this.phase = PHASES.BATTLE;
     this.currentTurnIndex = 0;
+    this.matchStartedAt = Date.now();
 
     for (const pid of this.playerOrder) {
       const oppId = this.playerOrder.find((id) => id !== pid);
@@ -227,9 +247,11 @@ class GameRoom {
     const bonusGranted = bonusRequested && attacker.bonusRollsLeft > 0;
     if (bonusGranted) {
       attacker.bonusRollsLeft -= 1;
+      this.bonusRollsUsed += 1;
     }
 
     this.rollInProgress = true;
+    this.turnsCompleted += 1;
 
     const roll1 = Math.floor(Math.random() * 6) + 1;
     const roll2 = Math.floor(Math.random() * 6) + 1;
@@ -240,6 +262,7 @@ class GameRoom {
     const isKingShot = shooterTank.isKing;
 
     if (isKingShot) {
+      this.kingShotsFired += 1;
       targetTank.hp = 0;
       targetTank.destroyed = true;
     } else {
@@ -273,9 +296,11 @@ class GameRoom {
         this.rollInProgress = false;
         if (this.phase === PHASES.BATTLE) {
           this.phase = PHASES.GAME_OVER;
+          this.logMatchEnd('all_destroyed', attackerId);
           this.broadcast('GAME_OVER', {
             winnerId: attackerId, loserId: defenderId,
             reason: 'all_destroyed', stats: this.getStats(),
+            analytics: this.getMatchAnalytics('all_destroyed', attackerId),
           });
         }
       }, TURN_DELAY_MS);
@@ -307,6 +332,29 @@ class GameRoom {
       map[pid] = this.players[pid]?.bonusRollsLeft ?? 0;
     }
     return map;
+  }
+
+  getMatchAnalytics(reason, winnerId) {
+    return {
+      roomCode: this.roomCode,
+      reason,
+      winnerId,
+      turnsCompleted: this.turnsCompleted,
+      kingShotsFired: this.kingShotsFired,
+      bonusRollsUsed: this.bonusRollsUsed,
+      durationMs: this.matchStartedAt ? Date.now() - this.matchStartedAt : null,
+      drawingTimeSeconds: this.drawingTimeSeconds,
+    };
+  }
+
+  logMatchEnd(reason, winnerId) {
+    try {
+      const analytics = this.getMatchAnalytics(reason, winnerId);
+      // Single-line JSON with a stable prefix so it's grep-able from logs
+      console.log(`MATCH_END ${JSON.stringify(analytics)}`);
+    } catch (e) {
+      console.error('Failed to log match end:', e.message);
+    }
   }
 
   allPlayersReady(field) {

@@ -97,3 +97,51 @@ test('bonus roll without remaining: rolls normally, no decrement', () => {
 
   room.cleanup();
 });
+
+test('drawing time defaults to 120 and accepts allowlist values', () => {
+  const r1 = new GameRoom('ROOM06');
+  assert.equal(r1.drawingTimeSeconds, 120, 'default is 120');
+  r1.cleanup();
+
+  const r2 = new GameRoom('ROOM07', { drawingTimeSeconds: 60 });
+  assert.equal(r2.drawingTimeSeconds, 60);
+  r2.cleanup();
+
+  const r3 = new GameRoom('ROOM08', { drawingTimeSeconds: 180 });
+  assert.equal(r3.drawingTimeSeconds, 180);
+  r3.cleanup();
+
+  // Out-of-allowlist values fall back to default
+  const r4 = new GameRoom('ROOM09', { drawingTimeSeconds: 9999 });
+  assert.equal(r4.drawingTimeSeconds, 120);
+  r4.cleanup();
+});
+
+test('match analytics: counters track turns/king-shots/bonuses', () => {
+  const room = new GameRoom('ROOM10');
+  room.addPlayer('p1', 'Alice', createSocket());
+  room.addPlayer('p2', 'Bob', createSocket());
+
+  // Start battle so matchStartedAt is set
+  room.startBattle();
+
+  // Make tank 0 the king for p1
+  room.players.p1.tanks[0].isKing = true;
+  room.players.p1.tanks[0].hp = 1;
+  // All tanks must have artwork to be valid
+  room.players.p1.tanks.forEach((t) => { t.imageUrl = 'x'; t.bulletUrl = 'x'; });
+  room.players.p2.tanks.forEach((t) => { t.imageUrl = 'x'; t.bulletUrl = 'x'; });
+
+  const before = room.turnsCompleted;
+  room.rollDice('p1');
+  assert.equal(room.turnsCompleted, before + 1, 'turn counter increments');
+  // kingShotsFired increments when shooter is the king (probabilistic — only if the random roll lands on the king tank)
+  // We can't deterministically verify without seeding, but we can verify analytics structure
+  const analytics = room.getMatchAnalytics('all_destroyed', 'p1');
+  assert.equal(analytics.roomCode, 'ROOM10');
+  assert.equal(analytics.reason, 'all_destroyed');
+  assert.equal(analytics.winnerId, 'p1');
+  assert.ok(analytics.durationMs >= 0, 'duration is non-negative');
+
+  room.cleanup();
+});

@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import DrawingCanvas from './DrawingCanvas';
 import useDrawingCanvas from '@/hooks/useDrawingCanvas';
 import useGameStore from '@/stores/gameStore';
-import { TANKS_PER_PLAYER, DRAWING_TIME_SECONDS } from '@/lib/constants';
+import { TANKS_PER_PLAYER, DEFAULT_DRAWING_TIME } from '@/lib/constants';
 
 export default function DrawingPhase({ onSubmit }) {
   const canvas = useDrawingCanvas();
@@ -15,8 +15,9 @@ export default function DrawingPhase({ onSubmit }) {
   const nextDrawing = useGameStore((s) => s.nextDrawing);
   const prevDrawing = useGameStore((s) => s.prevDrawing);
   const addToast = useGameStore((s) => s.addToast);
+  const drawingTimeSeconds = useGameStore((s) => s.drawingTimeSeconds);
 
-  const [timeLeft, setTimeLeft] = useState(DRAWING_TIME_SECONDS);
+  const [timeLeft, setTimeLeft] = useState(drawingTimeSeconds || DEFAULT_DRAWING_TIME);
   const [submitted, setSubmitted] = useState(false);
   const prevDrawRef = useRef({ index: currentIndex, type: drawingType });
   const handleSubmitRef = useRef(null);
