@@ -19,14 +19,42 @@ export default function DrawingPhase({ onSubmit }) {
   const [timeLeft, setTimeLeft] = useState(DRAWING_TIME_SECONDS);
   const [submitted, setSubmitted] = useState(false);
   const prevDrawRef = useRef({ index: currentIndex, type: drawingType });
+  const handleSubmitRef = useRef(null);
 
-  // Timer
+  const handleSubmit = useCallback(() => {
+    if (submitted) return;
+
+    const dataUrl = canvas.getDataURL();
+    if (drawingType === 'tank') {
+      setMyTankDrawing(currentIndex, dataUrl);
+    } else {
+      setMyBulletDrawing(currentIndex, dataUrl);
+    }
+
+    const state = useGameStore.getState();
+    const tanks = state.myTanks.map((t) => t.imageUrl);
+    const bullets = state.myTanks.map((t) => t.bulletUrl);
+
+    if (drawingType === 'tank') {
+      tanks[currentIndex] = dataUrl;
+    } else {
+      bullets[currentIndex] = dataUrl;
+    }
+
+    setSubmitted(true);
+    onSubmit(tanks, bullets);
+    addToast('Drawings submitted!', 'success');
+  }, [submitted, canvas, drawingType, currentIndex, setMyTankDrawing, setMyBulletDrawing, onSubmit, addToast]);
+
+  handleSubmitRef.current = handleSubmit;
+
+  // Timer (autocommit on expiry via ref to avoid handleSubmit dep churn)
   useEffect(() => {
     if (submitted) return;
     const interval = setInterval(() => {
       setTimeLeft((t) => {
         if (t <= 1) {
-          handleSubmit();
+          handleSubmitRef.current?.();
           return 0;
         }
         return t - 1;
@@ -35,7 +63,6 @@ export default function DrawingPhase({ onSubmit }) {
     return () => clearInterval(interval);
   }, [submitted]);
 
-  // Save current drawing before switching
   const saveCurrentDrawing = useCallback(() => {
     const dataUrl = canvas.getDataURL();
     const prev = prevDrawRef.current;
@@ -48,16 +75,16 @@ export default function DrawingPhase({ onSubmit }) {
 
   // Load drawing when index/type changes
   useEffect(() => {
-    // Save previous
     if (prevDrawRef.current.index !== currentIndex || prevDrawRef.current.type !== drawingType) {
       saveCurrentDrawing();
     }
     prevDrawRef.current = { index: currentIndex, type: drawingType };
 
-    // Load current
     const tank = myTanks[currentIndex];
     const dataUrl = drawingType === 'tank' ? tank?.imageUrl : tank?.bulletUrl;
     canvas.loadImage(dataUrl);
+    // canvas/myTanks/saveCurrentDrawing intentionally excluded — ref-stable + only want index/type triggers
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIndex, drawingType]);
 
   const handleNext = () => {
@@ -69,34 +96,6 @@ export default function DrawingPhase({ onSubmit }) {
     saveCurrentDrawing();
     prevDrawing();
   };
-
-  const handleSubmit = useCallback(() => {
-    if (submitted) return;
-
-    // Save current drawing first
-    const dataUrl = canvas.getDataURL();
-    if (drawingType === 'tank') {
-      setMyTankDrawing(currentIndex, dataUrl);
-    } else {
-      setMyBulletDrawing(currentIndex, dataUrl);
-    }
-
-    // Collect all drawings
-    const state = useGameStore.getState();
-    const tanks = state.myTanks.map((t) => t.imageUrl);
-    const bullets = state.myTanks.map((t) => t.bulletUrl);
-
-    // Update current one that was just saved
-    if (drawingType === 'tank') {
-      tanks[currentIndex] = dataUrl;
-    } else {
-      bullets[currentIndex] = dataUrl;
-    }
-
-    setSubmitted(true);
-    onSubmit(tanks, bullets);
-    addToast('Drawings submitted!', 'success');
-  }, [submitted, canvas, drawingType, currentIndex, setMyTankDrawing, setMyBulletDrawing, onSubmit, addToast]);
 
   const totalDrawings = TANKS_PER_PLAYER * 2;
   const currentNumber = drawingType === 'tank'
@@ -111,21 +110,26 @@ export default function DrawingPhase({ onSubmit }) {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="glass-card p-10 text-center animate-fade-in">
-          <div className="text-4xl mb-4 animate-float">&#9989;</div>
-          <h2 className="text-2xl font-bold mb-2">Drawings Submitted!</h2>
-          <p style={{ color: 'var(--text-secondary)' }}>
-            Waiting for your opponent to finish...
+      <div className="min-h-screen flex items-center justify-center pixel-grid-bg"
+        style={{ background: 'var(--bg-primary)' }}>
+        <div className="pixel-panel p-10 text-center animate-fade-in max-w-md">
+          <div className="font-pixel text-base mb-4" style={{ color: 'var(--success)' }}>
+            {'>>> SUBMITTED <<<'}
+          </div>
+          <h2 className="font-pixel text-sm mb-4" style={{ color: 'var(--accent)' }}>
+            DRAWINGS LOCKED IN
+          </h2>
+          <p className="font-mono text-xs" style={{ color: 'var(--text-secondary)' }}>
+            Waiting for opponent to finish...
           </p>
           <div className="flex justify-center gap-1 mt-6">
             {[0, 1, 2].map((i) => (
               <div
                 key={i}
-                className="w-2 h-2 rounded-full"
+                className="w-2 h-2"
                 style={{
                   background: 'var(--accent)',
-                  animation: `float 1.5s ease-in-out infinite ${i * 0.2}s`,
+                  animation: `blink 1.4s step-end infinite ${i * 0.2}s`,
                 }}
               />
             ))}
@@ -135,121 +139,150 @@ export default function DrawingPhase({ onSubmit }) {
     );
   }
 
+  const lowTime = timeLeft < 30;
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 gap-4">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 gap-4 pixel-grid-bg"
+      style={{ background: 'var(--bg-primary)' }}>
       {/* Header */}
       <div className="text-center animate-slide-down">
-        <div className="flex items-center justify-center gap-4 mb-2">
-          <h2 className="text-2xl font-bold">
-            Draw Your {drawingType === 'tank' ? `Tank #${currentIndex + 1}` : `Bullet #${currentIndex + 1}`}
-          </h2>
+        <div className="font-pixel text-[10px] mb-2" style={{ color: 'var(--text-secondary)' }}>
+          {drawingType === 'tank' ? '[ DESIGN PHASE ]' : '[ AMMO PHASE ]'}
         </div>
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+        <h2 className="font-pixel text-base sm:text-lg" style={{ color: 'var(--accent)' }}>
+          {drawingType === 'tank' ? `TANK #${currentIndex + 1}` : `BULLET #${currentIndex + 1}`}
+        </h2>
+        <p className="font-mono text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>
           {drawingType === 'tank'
-            ? 'Design a fearsome battle tank!'
-            : `Design the ammo for Tank #${currentIndex + 1}`}
+            ? 'Tank fires to the RIGHT. Design accordingly.'
+            : `Ammo for Tank #${currentIndex + 1}`}
         </p>
       </div>
 
-      {/* Timer and progress */}
+      {/* Timer + progress bar */}
       <div className="flex items-center gap-6">
-        <div className={`text-lg font-mono font-bold ${timeLeft < 30 ? 'text-red-400 animate-pulse' : ''}`}>
-          {minutes}:{seconds.toString().padStart(2, '0')}
+        <div className="px-4 py-2"
+          style={{
+            background: 'var(--bg-primary)',
+            border: `2px solid ${lowTime ? 'var(--danger)' : 'var(--pixel-border)'}`,
+          }}>
+          <span className={`font-pixel text-sm ${lowTime ? 'animate-blink' : ''}`}
+            style={{ color: lowTime ? 'var(--danger)' : 'var(--accent)' }}>
+            {minutes}:{seconds.toString().padStart(2, '0')}
+          </span>
         </div>
         <div className="flex gap-1">
-          {Array.from({ length: totalDrawings }, (_, i) => (
-            <div
-              key={i}
-              className="w-3 h-3 rounded-full transition-all"
-              style={{
-                background: i < currentNumber
-                  ? 'var(--accent)'
-                  : i === currentNumber - 1
-                  ? 'var(--king-gold)'
-                  : 'rgba(255,255,255,0.1)',
-                transform: i === currentNumber - 1 ? 'scale(1.3)' : 'scale(1)',
-              }}
-            />
-          ))}
+          {Array.from({ length: totalDrawings }, (_, i) => {
+            const completed = i < currentNumber - 1;
+            const current = i === currentNumber - 1;
+            return (
+              <div
+                key={i}
+                className="w-3 h-3 transition-all"
+                style={{
+                  background: completed
+                    ? 'var(--success)'
+                    : current
+                    ? 'var(--accent)'
+                    : 'var(--bg-primary)',
+                  border: '1px solid ' + (current ? 'var(--accent)' : 'var(--pixel-border)'),
+                  boxShadow: current ? '0 0 8px rgba(255, 102, 0, 0.5)' : 'none',
+                }}
+              />
+            );
+          })}
         </div>
       </div>
 
       {/* Canvas */}
       <div className="animate-fade-in">
-        <DrawingCanvas {...canvas} />
+        <DrawingCanvas {...canvas} drawingType={drawingType} />
       </div>
 
       {/* Navigation */}
       <div className="flex items-center gap-4">
         <button
-          className="btn-secondary px-6"
+          className="btn-pixel-secondary px-6"
           onClick={handlePrev}
           disabled={isFirstDrawing}
-          style={isFirstDrawing ? { opacity: 0.3 } : {}}
         >
-          &#8592; Prev
+          {'< PREV'}
         </button>
 
         {isLastDrawing ? (
-          <button className="btn-primary px-10" onClick={handleSubmit}>
-            Submit All Drawings
+          <button className="btn-pixel px-10" onClick={handleSubmit}>
+            SUBMIT ALL
           </button>
         ) : (
-          <button className="btn-primary px-8" onClick={handleNext}>
-            Next &#8594;
+          <button className="btn-pixel px-8" onClick={handleNext}>
+            {'NEXT >'}
           </button>
         )}
       </div>
 
       {/* Thumbnail strip */}
-      <div className="flex gap-2 mt-2">
+      <div className="flex gap-3 mt-2 flex-wrap justify-center">
         <div className="flex gap-1 items-center">
-          <span className="text-xs mr-2" style={{ color: 'var(--text-secondary)' }}>Tanks:</span>
-          {myTanks.map((tank, i) => (
-            <div
-              key={`tank-${i}`}
-              className={`w-10 h-8 rounded border cursor-pointer transition-all ${
-                drawingType === 'tank' && currentIndex === i ? 'ring-2' : ''
-              }`}
-              style={{
-                borderColor: tank.imageUrl ? 'var(--accent)' : 'rgba(255,255,255,0.1)',
-                ringColor: 'var(--king-gold)',
-                background: 'rgba(10, 10, 26, 0.6)',
-                backgroundImage: tank.imageUrl ? `url(${tank.imageUrl})` : 'none',
-                backgroundSize: 'contain',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-              }}
-              onClick={() => {
-                saveCurrentDrawing();
-                useGameStore.setState({ currentDrawingIndex: i, drawingType: 'tank' });
-              }}
-            />
-          ))}
+          <span className="font-pixel text-[8px] mr-2" style={{ color: 'var(--text-secondary)' }}>
+            TANKS
+          </span>
+          {myTanks.map((tank, i) => {
+            const isCurrent = drawingType === 'tank' && currentIndex === i;
+            return (
+              <button
+                key={`tank-${i}`}
+                className="w-10 h-8 transition-all relative"
+                style={{
+                  background: 'var(--bg-primary)',
+                  border: '2px solid ' + (isCurrent
+                    ? 'var(--accent)'
+                    : tank.imageUrl
+                    ? 'var(--success)'
+                    : 'var(--pixel-border)'),
+                  backgroundImage: tank.imageUrl ? `url(${tank.imageUrl})` : 'none',
+                  backgroundSize: 'contain',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                  boxShadow: isCurrent ? '0 0 8px rgba(255, 102, 0, 0.5)' : 'none',
+                }}
+                onClick={() => {
+                  saveCurrentDrawing();
+                  useGameStore.setState({ currentDrawingIndex: i, drawingType: 'tank' });
+                }}
+              />
+            );
+          })}
         </div>
-        <div className="flex gap-1 items-center ml-4">
-          <span className="text-xs mr-2" style={{ color: 'var(--text-secondary)' }}>Bullets:</span>
-          {myTanks.map((tank, i) => (
-            <div
-              key={`bullet-${i}`}
-              className={`w-10 h-8 rounded border cursor-pointer transition-all ${
-                drawingType === 'bullet' && currentIndex === i ? 'ring-2' : ''
-              }`}
-              style={{
-                borderColor: tank.bulletUrl ? 'var(--accent)' : 'rgba(255,255,255,0.1)',
-                ringColor: 'var(--king-gold)',
-                background: 'rgba(10, 10, 26, 0.6)',
-                backgroundImage: tank.bulletUrl ? `url(${tank.bulletUrl})` : 'none',
-                backgroundSize: 'contain',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-              }}
-              onClick={() => {
-                saveCurrentDrawing();
-                useGameStore.setState({ currentDrawingIndex: i, drawingType: 'bullet' });
-              }}
-            />
-          ))}
+        <div className="flex gap-1 items-center">
+          <span className="font-pixel text-[8px] mr-2" style={{ color: 'var(--text-secondary)' }}>
+            AMMO
+          </span>
+          {myTanks.map((tank, i) => {
+            const isCurrent = drawingType === 'bullet' && currentIndex === i;
+            return (
+              <button
+                key={`bullet-${i}`}
+                className="w-10 h-8 transition-all"
+                style={{
+                  background: 'var(--bg-primary)',
+                  border: '2px solid ' + (isCurrent
+                    ? 'var(--accent)'
+                    : tank.bulletUrl
+                    ? 'var(--success)'
+                    : 'var(--pixel-border)'),
+                  backgroundImage: tank.bulletUrl ? `url(${tank.bulletUrl})` : 'none',
+                  backgroundSize: 'contain',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                  boxShadow: isCurrent ? '0 0 8px rgba(255, 102, 0, 0.5)' : 'none',
+                }}
+                onClick={() => {
+                  saveCurrentDrawing();
+                  useGameStore.setState({ currentDrawingIndex: i, drawingType: 'bullet' });
+                }}
+              />
+            );
+          })}
         </div>
       </div>
     </div>

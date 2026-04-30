@@ -15,6 +15,7 @@ export default function DrawingCanvas({
   setBrushSize,
   tool,
   setTool,
+  drawingType,
 }) {
   const canvasContainerRef = useRef(null);
   const canvasElRef = useRef(null);
@@ -25,117 +26,178 @@ export default function DrawingCanvas({
     }
   }, [initCanvas]);
 
+  const showFacingHint = drawingType === 'tank';
+
   return (
     <div className="flex flex-col items-center gap-4">
-      {/* Canvas */}
+      {/* Canvas frame */}
       <div
         ref={canvasContainerRef}
-        className="relative rounded-2xl overflow-hidden"
+        className="relative"
         style={{
-          border: '3px solid rgba(255, 107, 53, 0.3)',
-          background: 'rgba(10, 10, 26, 0.9)',
-          boxShadow: '0 0 30px rgba(255, 107, 53, 0.1)',
+          padding: 0,
+          background: 'var(--bg-primary)',
+          border: '4px solid var(--pixel-border)',
+          boxShadow:
+            'inset -2px -2px 0 0 #111133, inset 2px 2px 0 0 #2a2a50, 0 4px 0 0 #0a0a1a',
         }}
       >
         <canvas
           ref={canvasElRef}
-          className="w-full max-w-[400px] aspect-[4/3] cursor-crosshair touch-none"
+          className="block w-full max-w-[400px] aspect-[4/3] cursor-crosshair touch-none"
           onPointerDown={startDrawing}
           onPointerMove={draw}
           onPointerUp={stopDrawing}
           onPointerLeave={stopDrawing}
+          style={{ background: '#fafafa' }}
         />
-        {/* Grid overlay for guidance */}
-        <div className="absolute inset-0 pointer-events-none opacity-10"
+
+        {/* Pixel grid overlay (dark canvas grid) */}
+        <div className="absolute inset-0 pointer-events-none"
           style={{
-            backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-            backgroundSize: '50px 50px',
+            backgroundImage:
+              'linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px)',
+            backgroundSize: '20px 20px',
           }}
         />
+
+        {/* Center line + facing-direction indicator (only for TANK drawings) */}
+        {showFacingHint && (
+          <>
+            <div className="absolute inset-y-0 pointer-events-none"
+              style={{
+                left: '50%',
+                width: 1,
+                background: 'rgba(0, 0, 0, 0.12)',
+              }}
+            />
+            <div className="absolute pointer-events-none"
+              style={{
+                right: 4,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'rgba(255, 102, 0, 0.85)',
+                color: '#fff',
+                fontFamily: "'Press Start 2P', monospace",
+                fontSize: '7px',
+                padding: '4px 6px',
+                letterSpacing: '1px',
+              }}
+            >
+              FRONT {'>'}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-center gap-3">
         {/* Tool selection */}
-        <div className="flex gap-1 p-1 rounded-lg" style={{ background: 'rgba(10, 10, 26, 0.6)' }}>
+        <div className="flex"
+          style={{ background: 'var(--bg-primary)', border: '2px solid var(--pixel-border)' }}>
           <button
-            className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${
-              tool === 'brush' ? 'text-white' : 'opacity-50 hover:opacity-80'
-            }`}
-            style={tool === 'brush' ? { background: 'var(--accent)' } : {}}
+            className="px-4 py-2 font-pixel text-[8px] transition-all"
+            style={{
+              background: tool === 'brush' ? 'var(--accent)' : 'transparent',
+              color: tool === 'brush' ? '#fff' : 'var(--text-secondary)',
+            }}
             onClick={() => setTool('brush')}
           >
-            Brush
+            BRUSH
           </button>
           <button
-            className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${
-              tool === 'eraser' ? 'text-white' : 'opacity-50 hover:opacity-80'
-            }`}
-            style={tool === 'eraser' ? { background: 'var(--accent)' } : {}}
+            className="px-4 py-2 font-pixel text-[8px] transition-all"
+            style={{
+              background: tool === 'eraser' ? 'var(--accent)' : 'transparent',
+              color: tool === 'eraser' ? '#fff' : 'var(--text-secondary)',
+            }}
             onClick={() => setTool('eraser')}
           >
-            Eraser
+            ERASER
           </button>
         </div>
 
         {/* Brush sizes */}
         <div className="flex gap-2 items-center">
-          {BRUSH_SIZES.map((size) => (
-            <button
-              key={size}
-              className={`rounded-full transition-all ${
-                brushSize === size ? 'ring-2 ring-offset-2 ring-offset-transparent' : 'opacity-50 hover:opacity-80'
-              }`}
-              style={{
-                width: Math.max(size * 2, 16),
-                height: Math.max(size * 2, 16),
-                background: brushSize === size ? 'var(--accent)' : 'rgba(255,255,255,0.3)',
-                ringColor: 'var(--accent)',
-              }}
-              onClick={() => setBrushSize(size)}
-            />
-          ))}
+          {BRUSH_SIZES.map((size) => {
+            const selected = brushSize === size;
+            return (
+              <button
+                key={size}
+                className="transition-all flex items-center justify-center"
+                style={{
+                  width: 32,
+                  height: 32,
+                  background: 'var(--bg-primary)',
+                  border: `2px solid ${selected ? 'var(--accent)' : 'var(--pixel-border)'}`,
+                  boxShadow: selected ? '0 0 6px rgba(255, 102, 0, 0.45)' : 'none',
+                }}
+                onClick={() => setBrushSize(size)}
+                aria-label={`Brush size ${size}`}
+              >
+                <span style={{
+                  display: 'block',
+                  width: Math.min(size * 1.5, 18),
+                  height: Math.min(size * 1.5, 18),
+                  background: selected ? 'var(--accent)' : 'var(--text-secondary)',
+                }} />
+              </button>
+            );
+          })}
         </div>
 
         {/* Undo / Clear */}
         <div className="flex gap-2">
           <button
-            className="px-3 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-80"
-            style={{ background: 'rgba(255, 255, 255, 0.1)' }}
+            className="px-3 py-2 font-pixel text-[8px] transition-all"
+            style={{
+              background: 'var(--bg-primary)',
+              border: '2px solid var(--pixel-border)',
+              color: 'var(--text-primary)',
+            }}
             onClick={undo}
-            title="Undo"
           >
-            Undo
+            UNDO
           </button>
           <button
-            className="px-3 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-80"
-            style={{ background: 'rgba(255, 71, 87, 0.2)', color: 'var(--danger)' }}
+            className="px-3 py-2 font-pixel text-[8px] transition-all"
+            style={{
+              background: 'var(--bg-primary)',
+              border: '2px solid var(--danger)',
+              color: 'var(--danger)',
+            }}
             onClick={clearCanvas}
-            title="Clear"
           >
-            Clear
+            CLEAR
           </button>
         </div>
       </div>
 
       {/* Color palette */}
-      <div className="flex flex-wrap gap-2 justify-center max-w-[400px]">
-        {COLOR_PALETTE.map((color) => (
-          <button
-            key={color}
-            className={`w-8 h-8 rounded-lg transition-all ${
-              brushColor === color && tool === 'brush' ? 'ring-2 ring-white scale-110' : 'hover:scale-105'
-            }`}
-            style={{
-              background: color,
-              border: color === '#ffffff' ? '1px solid rgba(255,255,255,0.3)' : 'none',
-            }}
-            onClick={() => {
-              setBrushColor(color);
-              setTool('brush');
-            }}
-          />
-        ))}
+      <div className="flex flex-wrap gap-1 justify-center max-w-[400px]"
+        style={{ padding: 6, background: 'var(--bg-primary)', border: '2px solid var(--pixel-border)' }}>
+        {COLOR_PALETTE.map((color) => {
+          const selected = brushColor === color && tool === 'brush';
+          return (
+            <button
+              key={color}
+              className="transition-all"
+              style={{
+                width: 24,
+                height: 24,
+                background: color,
+                border: `2px solid ${selected ? '#fff' : 'rgba(0,0,0,0.4)'}`,
+                outline: selected ? `2px solid var(--accent)` : 'none',
+                outlineOffset: 0,
+              }}
+              onClick={() => {
+                setBrushColor(color);
+                setTool('brush');
+              }}
+              aria-label={`Color ${color}`}
+            />
+          );
+        })}
       </div>
     </div>
   );
