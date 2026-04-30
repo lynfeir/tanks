@@ -1,6 +1,8 @@
 'use client';
 import { useState } from 'react';
 import useGameStore from '@/stores/gameStore';
+import TankChassis from './TankChassis';
+import sfx from '@/lib/audio';
 
 export default function KingSelection({ onSelectKing }) {
   const myTanks = useGameStore((s) => s.myTanks);
@@ -9,8 +11,14 @@ export default function KingSelection({ onSelectKing }) {
 
   const handleConfirm = () => {
     if (selectedIndex === null) return;
+    sfx.kingShot();
     setConfirmed(true);
     onSelectKing(selectedIndex);
+  };
+
+  const handleSelect = (i) => {
+    sfx.uiBlip();
+    setSelectedIndex(i);
   };
 
   if (confirmed) {
@@ -70,7 +78,7 @@ export default function KingSelection({ onSelectKing }) {
                   ? '0 0 15px rgba(255, 204, 0, 0.2)'
                   : 'none',
               }}
-              onClick={() => setSelectedIndex(i)}
+              onClick={() => handleSelect(i)}
             >
               {selectedIndex === i && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 font-pixel text-[8px] z-10 px-1"
@@ -85,12 +93,14 @@ export default function KingSelection({ onSelectKing }) {
               <div className="w-full aspect-[4/3] mb-2"
                 style={{
                   background: 'var(--bg-primary)',
-                  backgroundImage: tank.imageUrl ? `url(${tank.imageUrl})` : 'none',
-                  backgroundSize: 'contain',
-                  backgroundPosition: 'center',
-                  backgroundRepeat: 'no-repeat',
                   border: '2px solid ' + (selectedIndex === i ? 'var(--king-gold)' : 'var(--pixel-border)'),
-                }} />
+                }}>
+                <TankChassis
+                  imageUrl={tank.imageUrl}
+                  isKing={selectedIndex === i}
+                  facing="right"
+                />
+              </div>
 
               <div className="text-center">
                 <span className="font-pixel text-[8px]" style={{
