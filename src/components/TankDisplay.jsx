@@ -1,7 +1,7 @@
 'use client';
 
 export default function TankDisplay({ tank, index, isOpponent, isHighlighted, isHit, isShooter }) {
-  const maxHp = 2;
+  const maxHp = tank.isKing ? 1 : 2;
   const label = tank.isKing ? 'KING' : `TANK ${index + 1}`;
 
   const borderColor = isHighlighted

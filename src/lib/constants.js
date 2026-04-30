@@ -8,7 +8,7 @@ export const GAME_PHASES = {
 
 export const TANKS_PER_PLAYER = 6;
 export const NORMAL_TANK_HP = 2;
-export const KING_TANK_HP = 2;
+export const KING_TANK_HP = 1;
 export const DRAWING_TIME_SECONDS = 180;
 export const CANVAS_WIDTH = 400;
 export const CANVAS_HEIGHT = 300;
