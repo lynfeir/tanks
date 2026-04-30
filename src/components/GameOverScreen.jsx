@@ -98,7 +98,7 @@ export default function GameOverScreen() {
     };
   }, [isWinner]);
 
-  const handlePlayAgain = () => {
+  const handleNewMatch = () => {
     resetGame();
     window.location.reload();
   };
@@ -112,30 +112,31 @@ export default function GameOverScreen() {
       {showContent && (
         <div className="text-center z-10 px-4">
           {/* Title */}
-          <h1 className="font-pixel text-3xl sm:text-5xl mb-4 animate-slide-up"
-            style={{ color: isWinner ? 'var(--king-gold)' : 'var(--danger)' }}>
+          <h1 className={`font-pixel text-3xl sm:text-5xl mb-4 animate-slide-up ${isWinner ? 'animate-flicker' : ''}`}
+            style={{
+              color: isWinner ? 'var(--king-gold)' : 'var(--danger)',
+              textShadow: isWinner
+                ? '0 0 20px rgba(255, 204, 0, 0.4), 0 4px 0 #663300'
+                : '0 0 20px rgba(255, 0, 68, 0.4), 0 4px 0 #330011',
+            }}>
             {isWinner ? '>>> VICTORY <<<' : '>>> DEFEAT <<<'}
           </h1>
 
           {/* Subtitle */}
-          <p className="font-mono text-sm mb-8 animate-fade-in"
+          <p className="font-pixel text-[10px] mb-8 animate-fade-in"
             style={{ color: 'var(--text-secondary)', animationDelay: '0.3s' }}>
             {disconnectWin
               ? 'OPPONENT DISCONNECTED'
               : isWinner
-              ? 'ALL ENEMY TANKS DESTROYED'
-              : 'YOUR TANKS HAVE BEEN ELIMINATED'}
+              ? 'ALL ENEMY TANKS ELIMINATED'
+              : 'YOUR TANKS HAVE FALLEN'}
           </p>
 
           {/* Stats */}
           {showStats && (
-            <div className="inline-block p-6 mb-8 animate-slide-up"
-              style={{
-                background: 'var(--bg-secondary)',
-                border: '3px solid var(--pixel-border)',
-              }}>
-              <div className="font-pixel text-[8px] mb-4" style={{ color: 'var(--text-secondary)' }}>
-                -- BATTLE REPORT --
+            <div className="inline-block p-6 mb-8 animate-slide-up pixel-panel">
+              <div className="font-pixel text-[8px] mb-4" style={{ color: 'var(--accent)' }}>
+                {'-- BATTLE REPORT --'}
               </div>
               <div className="grid grid-cols-2 gap-10 text-center">
                 <div>
@@ -158,19 +159,19 @@ export default function GameOverScreen() {
             </div>
           )}
 
-          {/* Play again */}
+          {/* Actions */}
           {showStats && (
-            <div className="animate-fade-in" style={{ animationDelay: '0.5s' }}>
+            <div className="flex gap-3 justify-center animate-fade-in flex-wrap" style={{ animationDelay: '0.5s' }}>
               <button
-                className="btn-pixel text-sm px-12 py-4"
-                onClick={handlePlayAgain}
+                className="btn-pixel text-sm px-10 py-4"
+                onClick={handleNewMatch}
                 style={isWinner ? {
                   background: 'var(--king-gold)',
                   color: '#000',
                   boxShadow: '0 4px 0 0 #cc9900, 0 6px 0 0 #0a0a1a, 0 0 30px rgba(255, 204, 0, 0.3)',
                 } : {}}
               >
-                PLAY AGAIN?
+                {'> NEW MATCH'}
               </button>
             </div>
           )}
