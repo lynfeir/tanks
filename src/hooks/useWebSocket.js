@@ -37,6 +37,9 @@ export default function useWebSocket() {
           if (msg.payload.opponentTanks) {
             s.setOpponentTanks(msg.payload.opponentTanks);
           }
+          if (msg.payload.bonusRollsLeft) {
+            s.setBonusRollsLeft(msg.payload.bonusRollsLeft);
+          }
           break;
 
         case WS_MESSAGES.DRAWINGS_RECEIVED:
@@ -49,6 +52,9 @@ export default function useWebSocket() {
 
         case WS_MESSAGES.DICE_RESULT:
           s.setDiceResults(msg.payload);
+          if (msg.payload.bonusRollsLeft) {
+            s.setBonusRollsLeft(msg.payload.bonusRollsLeft);
+          }
           break;
 
         case WS_MESSAGES.TANK_HIT: {
@@ -133,8 +139,8 @@ export default function useWebSocket() {
     sendMessage(WS_MESSAGES.SELECT_KING, { tankIndex });
   }, []);
 
-  const rollDice = useCallback(() => {
-    sendMessage(WS_MESSAGES.ROLL_DICE, {});
+  const rollDice = useCallback((options = {}) => {
+    sendMessage(WS_MESSAGES.ROLL_DICE, { useBonus: !!options.useBonus });
   }, []);
 
   return { createRoom, joinRoom, submitDrawings, selectKing, rollDice };

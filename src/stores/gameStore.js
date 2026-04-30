@@ -40,6 +40,7 @@ const useGameStore = create((set, get) => ({
   animationPlaying: false,
   gameOverData: null,
   killFeed: [],
+  bonusRollsLeft: {}, // map of playerId -> bonus rolls remaining
 
   // UI
   toasts: [],
@@ -155,6 +156,8 @@ const useGameStore = create((set, get) => ({
       ],
     })),
 
+  setBonusRollsLeft: (map) => set({ bonusRollsLeft: map || {} }),
+
   addToast: (message, type = 'info') =>
     set((state) => ({
       toasts: [...state.toasts, { id: Date.now(), message, type }],
@@ -182,6 +185,7 @@ const useGameStore = create((set, get) => ({
       animationPlaying: false,
       gameOverData: null,
       killFeed: [],
+      bonusRollsLeft: {},
       error: null,
     }),
 
@@ -196,6 +200,7 @@ const useGameStore = create((set, get) => ({
         isMyTurn: serverState.currentTurn === state.playerId,
         myTanks: serverState.myTanks || state.myTanks,
         opponentTanks: serverState.opponentTanks || state.opponentTanks,
+        bonusRollsLeft: serverState.bonusRollsLeft || state.bonusRollsLeft,
       };
     }),
 }));

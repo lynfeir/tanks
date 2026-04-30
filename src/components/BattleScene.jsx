@@ -58,6 +58,10 @@ export default function BattleScene({ onRollDice }) {
   const currentTurn = useGameStore((s) => s.currentTurn);
   const setAnimationPlaying = useGameStore((s) => s.setAnimationPlaying);
   const animationPlaying = useGameStore((s) => s.animationPlaying);
+  const bonusRollsLeft = useGameStore((s) => s.bonusRollsLeft);
+  const myBonus = bonusRollsLeft?.[playerId] ?? 0;
+  const oppId = Object.values(players).find((p) => p.id !== playerId)?.id;
+  const oppBonus = oppId ? bonusRollsLeft?.[oppId] ?? 0 : 0;
 
   const [rolling, setRolling] = useState(false);
   const [shaking, setShaking] = useState(false);
@@ -116,13 +120,14 @@ export default function BattleScene({ onRollDice }) {
     return () => observer.disconnect();
   }, []);
 
-  const handleRoll = useCallback(() => {
+  const handleRoll = useCallback((useBonus = false) => {
     if (!isMyTurn || animationPlaying || rolling) return;
+    if (useBonus && myBonus <= 0) return;
     sfx.unlock();
     sfx.dice();
     setRolling(true);
-    onRollDice();
-  }, [isMyTurn, animationPlaying, rolling, onRollDice]);
+    onRollDice({ useBonus });
+  }, [isMyTurn, animationPlaying, rolling, onRollDice, myBonus]);
 
   // Handle dice result and trigger animation sequence
   useEffect(() => {
@@ -297,7 +302,15 @@ export default function BattleScene({ onRollDice }) {
                 )}
               </div>
               <div>
-                <div className="font-pixel text-[8px]" style={{ color: 'var(--success)' }}>{myName}</div>
+                <div className="font-pixel text-[8px] flex items-center gap-1" style={{ color: 'var(--success)' }}>
+                  <span>{myName}</span>
+                  {myBonus > 0 && (
+                    <span title="Bonus roll available"
+                      style={{ color: 'var(--king-gold)', textShadow: '0 0 6px rgba(255,204,0,0.6)' }}>
+                      {'★'.repeat(Math.min(3, myBonus))}
+                    </span>
+                  )}
+                </div>
                 <div className="flex gap-0.5 mt-1">
                   {myTanks.map((t, i) => (
                     <div key={i} className="w-2.5 h-2.5 transition-all duration-500"
@@ -335,7 +348,15 @@ export default function BattleScene({ onRollDice }) {
             {/* Player 2 (Enemy) stats */}
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <div className="font-pixel text-[8px]" style={{ color: 'var(--danger)' }}>{oppName}</div>
+                <div className="font-pixel text-[8px] flex items-center justify-end gap-1" style={{ color: 'var(--danger)' }}>
+                  {oppBonus > 0 && (
+                    <span title="Opponent has a bonus roll"
+                      style={{ color: 'var(--king-gold)', textShadow: '0 0 6px rgba(255,204,0,0.6)' }}>
+                      {'★'.repeat(Math.min(3, oppBonus))}
+                    </span>
+                  )}
+                  <span>{oppName}</span>
+                </div>
                 <div className="flex gap-0.5 justify-end mt-1">
                   {opponentTanks.map((t, i) => (
                     <div key={i} className="w-2.5 h-2.5 transition-all duration-500"
@@ -460,16 +481,34 @@ export default function BattleScene({ onRollDice }) {
           )}
 
           {isMyTurn && !animationPlaying && (
-            <button
-              className="btn-pixel text-base px-14 py-4"
-              onClick={handleRoll}
-              style={{
-                fontSize: '0.85rem',
-                boxShadow: '0 4px 0 0 #cc5200, 0 6px 0 0 #0a0a1a, 0 0 30px rgba(255, 102, 0, 0.3)',
-              }}
-            >
-              ROLL THE DICE
-            </button>
+            <div className="flex flex-col items-center gap-3">
+              <button
+                className="btn-pixel text-base px-14 py-4"
+                onClick={() => handleRoll(false)}
+                style={{
+                  fontSize: '0.85rem',
+                  boxShadow: '0 4px 0 0 #cc5200, 0 6px 0 0 #0a0a1a, 0 0 30px rgba(255, 102, 0, 0.3)',
+                }}
+              >
+                ROLL THE DICE
+              </button>
+              {myBonus > 0 && (
+                <button
+                  className="px-6 py-2 font-pixel text-[9px] transition-all hover:opacity-90"
+                  onClick={() => handleRoll(true)}
+                  style={{
+                    background: 'var(--bg-primary)',
+                    color: 'var(--king-gold)',
+                    border: '2px solid var(--king-gold)',
+                    boxShadow: '0 3px 0 0 #996600, 0 0 14px rgba(255, 204, 0, 0.35)',
+                    cursor: 'pointer',
+                  }}
+                  title="Use your bonus roll — turn doesn't end after this shot"
+                >
+                  {'★'} BONUS ROLL ({myBonus})
+                </button>
+              )}
+            </div>
           )}
 
           {!isMyTurn && !animationPlaying && (

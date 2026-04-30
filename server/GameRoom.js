@@ -53,6 +53,7 @@ class GameRoom {
       drawingsSubmitted: false,
       kingSelected: false,
       connected: true,
+      bonusRollsLeft: 1,
     };
 
     this.playerOrder.push(playerId);
@@ -199,11 +200,12 @@ class GameRoom {
         phase: PHASES.BATTLE,
         currentTurn: this.playerOrder[this.currentTurnIndex],
         opponentTanks: oppTanks,
+        bonusRollsLeft: this.getBonusRollsMap(),
       });
     }
   }
 
-  rollDice(playerId) {
+  rollDice(playerId, options = {}) {
     if (this.phase !== PHASES.BATTLE) return { error: 'Not in battle phase' };
     if (this.rollInProgress) return { error: 'Roll in progress' };
 
@@ -219,6 +221,13 @@ class GameRoom {
     const aliveTanks = attacker.tanks.filter((t) => !t.destroyed);
     const aliveTargets = defender.tanks.filter((t) => !t.destroyed);
     if (aliveTanks.length === 0 || aliveTargets.length === 0) return { error: 'No valid tanks' };
+
+    // Bonus roll: same roll, but turn doesn't advance afterwards
+    const bonusRequested = !!options.useBonus;
+    const bonusGranted = bonusRequested && attacker.bonusRollsLeft > 0;
+    if (bonusGranted) {
+      attacker.bonusRollsLeft -= 1;
+    }
 
     this.rollInProgress = true;
 
@@ -246,6 +255,8 @@ class GameRoom {
       targetTank: targetTank.id,
       isKingShot,
       shooterBulletUrl: shooterTank.bulletUrl,
+      bonusUsed: bonusGranted,
+      bonusRollsLeft: this.getBonusRollsMap(),
     });
 
     this.broadcast('TANK_HIT', {
@@ -275,15 +286,27 @@ class GameRoom {
     this.turnTimer = setTimeout(() => {
       this.rollInProgress = false;
       if (this.phase === PHASES.BATTLE) {
-        this.currentTurnIndex = (this.currentTurnIndex + 1) % 2;
+        // Skip turn advance if this was a bonus roll — same player goes again
+        if (!bonusGranted) {
+          this.currentTurnIndex = (this.currentTurnIndex + 1) % 2;
+        }
         this.broadcast('PHASE_CHANGE', {
           phase: PHASES.BATTLE,
           currentTurn: this.playerOrder[this.currentTurnIndex],
+          bonusRollsLeft: this.getBonusRollsMap(),
         });
       }
     }, TURN_DELAY_MS);
 
     return { success: true };
+  }
+
+  getBonusRollsMap() {
+    const map = {};
+    for (const pid of this.playerOrder) {
+      map[pid] = this.players[pid]?.bonusRollsLeft ?? 0;
+    }
+    return map;
   }
 
   allPlayersReady(field) {
@@ -323,6 +346,7 @@ class GameRoom {
         hp: t.hp, isKing: t.isKing, destroyed: t.destroyed,
       })) || [] : [],
       currentTurn: this.playerOrder[this.currentTurnIndex] || null,
+      bonusRollsLeft: this.getBonusRollsMap(),
     };
   }
 

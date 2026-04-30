@@ -202,7 +202,9 @@ wss.on('connection', (ws) => {
         const room = getRoom();
         if (!room) return;
 
-        const result = room.rollDice(currentPlayerId);
+        const result = room.rollDice(currentPlayerId, {
+          useBonus: !!payload?.useBonus,
+        });
         if (result.error) {
           sendError(ws, result.error);
         }
