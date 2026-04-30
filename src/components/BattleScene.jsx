@@ -5,6 +5,8 @@ import TankDisplay from './TankDisplay';
 import DiceRoller from './DiceRoller';
 import BulletAnimation from './BulletAnimation';
 import Explosion from './Explosion';
+import DamageNumber from './DamageNumber';
+import KillFeed from './KillFeed';
 import useGameStore from '@/stores/gameStore';
 import sfx from '@/lib/audio';
 
@@ -71,6 +73,9 @@ export default function BattleScene({ onRollDice }) {
   const [hitTank, setHitTank] = useState(null);
   const [announcement, setAnnouncement] = useState('');
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const [floatingNumbers, setFloatingNumbers] = useState([]);
+  const [freezeFrame, setFreezeFrame] = useState(false);
+  const addKillFeedEntry = useGameStore((s) => s.addKillFeedEntry);
 
   const containerRef = useRef(null);
   const timersRef = useRef([]);
@@ -192,15 +197,48 @@ export default function BattleScene({ onRollDice }) {
         isKingShot ? 'KING SHOT! One-hit KO!' : 'Direct hit!'
       );
 
-      // Audio + game-feel
-      if (isKingShot) {
-        sfx.kingShot();
-      } else {
-        sfx.hit();
-      }
+      // Audio
+      if (isKingShot) sfx.kingShot();
+      else sfx.hit();
       sfx.explode();
+
+      // Floating damage number — read fresh tank state to know if destroyed
+      const targetIsMine = diceResults?.defenderId === playerId;
+      const targetTank = (targetIsMine ? myTanks : opponentTanks)[diceResults?.targetTank];
+      const wasDestroyed = targetTank ? targetTank.destroyed || (targetTank.hp <= 0) : isKingShot;
+      const dmgText = isKingShot ? 'KING SHOT!' : wasDestroyed ? 'DESTROYED' : '−1';
+      const dmgColor = isKingShot
+        ? 'var(--king-gold)'
+        : wasDestroyed
+        ? 'var(--danger)'
+        : '#ff8866';
+      const dmgId = `dmg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      setFloatingNumbers((prev) => [
+        ...prev,
+        { id: dmgId, x: bulletTo.x, y: bulletTo.y - 20, text: dmgText, color: dmgColor, kingShot: isKingShot },
+      ]);
+
+      // Kill feed entry — both players push, both see the same log
+      const attackerName =
+        Object.values(players).find((p) => p.id === diceResults?.attackerId)?.name || '?';
+      const targetName =
+        Object.values(players).find((p) => p.id === diceResults?.defenderId)?.name || '?';
+      addKillFeedEntry({
+        attackerName,
+        shooterTank: diceResults?.shooterTank,
+        targetName,
+        targetTank: diceResults?.targetTank,
+        isKing: isKingShot,
+        destroyed: wasDestroyed,
+      });
+
+      // Hit-stop: freeze for 350ms on king shot
+      if (isKingShot) {
+        setFreezeFrame(true);
+        addTimer(() => setFreezeFrame(false), 350);
+      }
     }
-  }, [bulletTo, diceResults, isKingShot]);
+  }, [bulletTo, diceResults, isKingShot, myTanks, opponentTanks, playerId, players, addKillFeedEntry, addTimer]);
 
   const handleExplosionComplete = useCallback(() => {
     setExplosionActive(false);
@@ -228,7 +266,17 @@ export default function BattleScene({ onRollDice }) {
 
   return (
     <ValleyBackground shaking={shaking}>
-      <div ref={containerRef} className="w-full h-full relative">
+      <KillFeed />
+      <div
+        ref={containerRef}
+        className="w-full h-full relative"
+        style={{
+          transform: freezeFrame ? 'scale(1.04)' : 'scale(1)',
+          transition: freezeFrame ? 'transform 60ms linear' : 'transform 220ms ease-out',
+          filter: freezeFrame ? 'saturate(1.4) contrast(1.1)' : 'none',
+          transformOrigin: bulletTo ? `${bulletTo.x}px ${bulletTo.y}px` : 'center center',
+        }}
+      >
         {/* ═══ TOP HUD BAR ═══ */}
         <div className="absolute top-0 left-0 right-0 z-30 px-4 pt-3">
           <div className="flex items-center justify-between max-w-5xl mx-auto">
@@ -386,6 +434,19 @@ export default function BattleScene({ onRollDice }) {
           onComplete={handleExplosionComplete}
           isKingShot={isKingShot}
         />
+
+        {/* ═══ DAMAGE NUMBERS ═══ */}
+        {floatingNumbers.map((n) => (
+          <DamageNumber
+            key={n.id}
+            x={n.x}
+            y={n.y}
+            text={n.text}
+            color={n.color}
+            kingShot={n.kingShot}
+            onDone={() => setFloatingNumbers((prev) => prev.filter((p) => p.id !== n.id))}
+          />
+        ))}
 
         {/* ═══ BOTTOM CONTROLS ═══ */}
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-4">

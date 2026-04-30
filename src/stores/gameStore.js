@@ -39,6 +39,7 @@ const useGameStore = create((set, get) => ({
   lastHit: null,
   animationPlaying: false,
   gameOverData: null,
+  killFeed: [],
 
   // UI
   toasts: [],
@@ -146,6 +147,14 @@ const useGameStore = create((set, get) => ({
 
   setGameOverData: (data) => set({ gameOverData: data }),
 
+  addKillFeedEntry: (entry) =>
+    set((state) => ({
+      killFeed: [
+        ...state.killFeed.slice(-19),
+        { id: `kf-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, ts: Date.now(), ...entry },
+      ],
+    })),
+
   addToast: (message, type = 'info') =>
     set((state) => ({
       toasts: [...state.toasts, { id: Date.now(), message, type }],
@@ -172,6 +181,7 @@ const useGameStore = create((set, get) => ({
       lastHit: null,
       animationPlaying: false,
       gameOverData: null,
+      killFeed: [],
       error: null,
     }),
 
