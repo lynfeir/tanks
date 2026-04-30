@@ -283,12 +283,12 @@ export default function BattleScene({ onRollDice }) {
         }}
       >
         {/* ═══ TOP HUD BAR ═══ */}
-        <div className="absolute top-0 left-0 right-0 z-30 px-4 pt-3">
-          <div className="flex items-center justify-between max-w-5xl mx-auto">
+        <div className="absolute top-12 sm:top-0 left-0 right-0 z-30 px-2 sm:px-4 pt-3">
+          <div className="flex items-center justify-between max-w-5xl mx-auto gap-1 sm:gap-3">
             {/* Player 1 (You) stats */}
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="w-10 h-10 flex items-center justify-center font-pixel text-[10px]"
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <div className="relative shrink-0">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center font-pixel text-[10px]"
                   style={{
                     background: 'var(--bg-secondary)',
                     border: '2px solid var(--success)',
@@ -301,9 +301,9 @@ export default function BattleScene({ onRollDice }) {
                     style={{ background: 'var(--success)' }} />
                 )}
               </div>
-              <div>
-                <div className="font-pixel text-[8px] flex items-center gap-1" style={{ color: 'var(--success)' }}>
-                  <span>{myName}</span>
+              <div className="min-w-0">
+                <div className="font-pixel text-[7px] sm:text-[8px] flex items-center gap-1" style={{ color: 'var(--success)' }}>
+                  <span className="truncate max-w-[80px] sm:max-w-none">{myName}</span>
                   {myBonus > 0 && (
                     <span title="Bonus roll available"
                       style={{ color: 'var(--king-gold)', textShadow: '0 0 6px rgba(255,204,0,0.6)' }}>
@@ -313,7 +313,7 @@ export default function BattleScene({ onRollDice }) {
                 </div>
                 <div className="flex gap-0.5 mt-1">
                   {myTanks.map((t, i) => (
-                    <div key={i} className="w-2.5 h-2.5 transition-all duration-500"
+                    <div key={i} className="w-2 h-2 sm:w-2.5 sm:h-2.5 transition-all duration-500"
                       style={{
                         background: t.destroyed
                           ? 'var(--bg-primary)'
@@ -326,18 +326,18 @@ export default function BattleScene({ onRollDice }) {
             </div>
 
             {/* Center — Turn indicator */}
-            <div className="text-center flex-1 mx-4">
-              <div className="inline-block px-5 py-2"
+            <div className="text-center flex-1 mx-1 sm:mx-4 min-w-0">
+              <div className="inline-block px-3 sm:px-5 py-1.5 sm:py-2 max-w-full"
                 style={{
                   background: 'var(--bg-primary)',
                   border: '2px solid var(--pixel-border)',
                 }}>
-                <div className="font-pixel text-[10px] animate-blink"
+                <div className="font-pixel text-[8px] sm:text-[10px] animate-blink whitespace-nowrap"
                   style={{ color: currentTurn === playerId ? 'var(--success)' : 'var(--danger)' }}>
                   {'>> '}{currentTurnName} TURN{' <<'}
                 </div>
                 {announcement && (
-                  <div className={`font-pixel text-[8px] mt-1 animate-fade-in`}
+                  <div className={`font-pixel text-[7px] sm:text-[8px] mt-1 animate-fade-in truncate`}
                     style={{ color: isKingShot ? 'var(--king-gold)' : 'var(--accent)' }}>
                     {announcement}
                   </div>
@@ -347,19 +347,19 @@ export default function BattleScene({ onRollDice }) {
 
             {/* Player 2 (Enemy) stats */}
             <div className="flex items-center gap-3">
-              <div className="text-right">
-                <div className="font-pixel text-[8px] flex items-center justify-end gap-1" style={{ color: 'var(--danger)' }}>
+              <div className="text-right min-w-0">
+                <div className="font-pixel text-[7px] sm:text-[8px] flex items-center justify-end gap-1" style={{ color: 'var(--danger)' }}>
                   {oppBonus > 0 && (
                     <span title="Opponent has a bonus roll"
                       style={{ color: 'var(--king-gold)', textShadow: '0 0 6px rgba(255,204,0,0.6)' }}>
                       {'★'.repeat(Math.min(3, oppBonus))}
                     </span>
                   )}
-                  <span>{oppName}</span>
+                  <span className="truncate max-w-[80px] sm:max-w-none">{oppName}</span>
                 </div>
                 <div className="flex gap-0.5 justify-end mt-1">
                   {opponentTanks.map((t, i) => (
-                    <div key={i} className="w-2.5 h-2.5 transition-all duration-500"
+                    <div key={i} className="w-2 h-2 sm:w-2.5 sm:h-2.5 transition-all duration-500"
                       style={{
                         background: t.destroyed
                           ? 'var(--bg-primary)'
@@ -369,8 +369,8 @@ export default function BattleScene({ onRollDice }) {
                   ))}
                 </div>
               </div>
-              <div className="relative">
-                <div className="w-10 h-10 flex items-center justify-center font-pixel text-[10px]"
+              <div className="relative shrink-0">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center font-pixel text-[10px]"
                   style={{
                     background: 'var(--bg-secondary)',
                     border: '2px solid var(--danger)',

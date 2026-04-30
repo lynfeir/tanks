@@ -209,7 +209,7 @@ export default function GameOverScreen() {
 
           {/* Match recap (kill feed history) */}
           {showStats && killFeed && killFeed.length > 0 && (
-            <div className="inline-block p-4 mb-6 animate-slide-up pixel-panel max-w-md text-left"
+            <div className="inline-block p-4 mb-6 animate-slide-up pixel-panel max-w-md w-[92vw] sm:w-auto text-left"
               style={{ animationDelay: '0.7s' }}>
               <div className="font-pixel text-[8px] mb-3" style={{ color: 'var(--accent)' }}>
                 {'-- MATCH LOG --'}

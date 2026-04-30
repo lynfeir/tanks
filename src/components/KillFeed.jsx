@@ -22,7 +22,7 @@ export default function KillFeed() {
   const visible = feed.slice(-5);
 
   return (
-    <div className="fixed bottom-4 right-4 z-30 flex flex-col gap-1 items-end pointer-events-none">
+    <div className="fixed bottom-2 sm:bottom-4 right-2 sm:right-4 z-30 flex flex-col gap-1 items-end pointer-events-none max-w-[60vw] sm:max-w-none">
       {visible.map((entry) => {
         const age = now - entry.ts;
         const opacity = age > 5000 ? Math.max(0, 1 - (age - 5000) / 1500) : 1;
@@ -30,7 +30,7 @@ export default function KillFeed() {
         return (
           <div
             key={entry.id}
-            className="font-pixel text-[8px] px-2 py-1 animate-slide-up"
+            className="font-pixel text-[7px] sm:text-[8px] px-2 py-1 animate-slide-up truncate max-w-full"
             style={{
               background: 'rgba(15, 15, 35, 0.85)',
               border: `1px solid ${entry.isKing ? 'var(--king-gold)' : 'var(--pixel-border)'}`,
