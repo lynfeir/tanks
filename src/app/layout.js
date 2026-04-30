@@ -1,9 +1,31 @@
 import './globals.css';
 
+const TITLE = "Rollin' Tanks";
+const DESCRIPTION = 'Draw your tanks. Roll the dice. Destroy your friends. A 2-player real-time arcade tank game.';
+
 export const metadata = {
-  title: "Rollin' Tanks",
-  description: 'Draw your tanks. Roll the dice. Destroy your friends.',
-  icons: { icon: '/favicon.ico' },
+  title: TITLE,
+  description: DESCRIPTION,
+  applicationName: TITLE,
+  // src/app/icon.svg is auto-picked up by Next.js as the favicon — no /public needed
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    type: 'website',
+    siteName: TITLE,
+  },
+  twitter: {
+    card: 'summary',
+    title: TITLE,
+    description: DESCRIPTION,
+  },
+  themeColor: '#0f0f23',
+};
+
+export const viewport = {
+  themeColor: '#0f0f23',
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }) {
