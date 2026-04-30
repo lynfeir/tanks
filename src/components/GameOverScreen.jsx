@@ -3,12 +3,35 @@ import { useEffect, useRef, useState } from 'react';
 import useGameStore from '@/stores/gameStore';
 import sfx from '@/lib/audio';
 
+function formatDuration(ms) {
+  if (!ms || ms < 0) return '—';
+  const totalSec = Math.floor(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return `${min}:${sec.toString().padStart(2, '0')}`;
+}
+
+function Stat({ value, label, color }) {
+  return (
+    <div>
+      <div className="font-pixel text-base" style={{ color: color || 'var(--text-primary)' }}>
+        {value}
+      </div>
+      <div className="font-pixel text-[6px] mt-1" style={{ color: 'var(--text-secondary)' }}>
+        {label}
+      </div>
+    </div>
+  );
+}
+
 export default function GameOverScreen() {
   const myTanks = useGameStore((s) => s.myTanks);
   const opponentTanks = useGameStore((s) => s.opponentTanks);
   const resetGame = useGameStore((s) => s.resetGame);
   const gameOverData = useGameStore((s) => s.gameOverData);
   const playerId = useGameStore((s) => s.playerId);
+  const killFeed = useGameStore((s) => s.killFeed);
+  const analytics = gameOverData?.analytics;
 
   const canvasRef = useRef(null);
   const particlesRef = useRef([]);
@@ -140,11 +163,11 @@ export default function GameOverScreen() {
 
           {/* Stats */}
           {showStats && (
-            <div className="inline-block p-6 mb-8 animate-slide-up pixel-panel">
+            <div className="inline-block p-6 mb-6 animate-slide-up pixel-panel">
               <div className="font-pixel text-[8px] mb-4" style={{ color: 'var(--accent)' }}>
                 {'-- BATTLE REPORT --'}
               </div>
-              <div className="grid grid-cols-2 gap-10 text-center">
+              <div className="grid grid-cols-2 gap-10 text-center mb-4">
                 <div>
                   <div className="font-pixel text-2xl" style={{ color: 'var(--success)' }}>
                     {myAlive}
@@ -161,6 +184,62 @@ export default function GameOverScreen() {
                     ENEMY TANKS
                   </div>
                 </div>
+              </div>
+
+              {analytics && (
+                <div className="grid grid-cols-3 gap-4 pt-4 text-center"
+                  style={{ borderTop: '1px solid var(--pixel-border)' }}>
+                  <Stat
+                    value={formatDuration(analytics.durationMs)}
+                    label="DURATION"
+                  />
+                  <Stat
+                    value={analytics.turnsCompleted ?? 0}
+                    label="TURNS"
+                  />
+                  <Stat
+                    value={analytics.kingShotsFired ?? 0}
+                    label="KING SHOTS"
+                    color={analytics.kingShotsFired > 0 ? 'var(--king-gold)' : undefined}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Match recap (kill feed history) */}
+          {showStats && killFeed && killFeed.length > 0 && (
+            <div className="inline-block p-4 mb-6 animate-slide-up pixel-panel max-w-md text-left"
+              style={{ animationDelay: '0.7s' }}>
+              <div className="font-pixel text-[8px] mb-3" style={{ color: 'var(--accent)' }}>
+                {'-- MATCH LOG --'}
+              </div>
+              <div className="font-pixel text-[7px] space-y-1 max-h-40 overflow-y-auto"
+                style={{ color: 'var(--text-secondary)' }}>
+                {killFeed.slice(-10).map((entry, i) => (
+                  <div key={entry.id || i} className="flex gap-2">
+                    <span style={{ color: 'var(--pixel-border)', minWidth: 24 }}>
+                      {String(killFeed.length - killFeed.slice(-10).length + i + 1).padStart(2, '0')}
+                    </span>
+                    <span style={{ color: 'var(--success)' }}>
+                      {entry.attackerName} {entry.isKing ? 'KING' : `T${entry.shooterTank + 1}`}
+                    </span>
+                    <span>{'>'}</span>
+                    <span style={{ color: 'var(--danger)' }}>
+                      {entry.targetName} T{entry.targetTank + 1}
+                    </span>
+                    <span style={{
+                      color: entry.isKing
+                        ? 'var(--king-gold)'
+                        : entry.destroyed
+                        ? 'var(--danger)'
+                        : 'var(--text-primary)',
+                      marginLeft: 'auto',
+                    }}>
+                      {entry.isKing ? '[K]' : entry.destroyed ? '[KO]' : '[HIT]'}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           )}
