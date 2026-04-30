@@ -1,16 +1,51 @@
 'use client';
 import { useState, useCallback, useEffect } from 'react';
 import useGameStore from '@/stores/gameStore';
+import sfx from '@/lib/audio';
+
+const MUTE_STORAGE_KEY = 'tanks:muted';
 
 /**
  * HUD — pinned overlay shown across all phases once a room exists.
  * Top-left: room-code pill (click to copy).
- * Top-right: help (?) button — opens the rules overlay.
+ * Top-right: mute + help (?) buttons.
  */
 export default function HUD({ onOpenHelp }) {
   const roomCode = useGameStore((s) => s.roomCode);
   const phase = useGameStore((s) => s.phase);
   const [copied, setCopied] = useState(false);
+  const [muted, setMuted] = useState(false);
+
+  // Hydrate mute from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(MUTE_STORAGE_KEY);
+      if (saved === '1') {
+        setMuted(true);
+        sfx.setMuted(true);
+      }
+    } catch {
+      // localStorage unavailable — fall back to default
+    }
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    setMuted((prev) => {
+      const next = !prev;
+      sfx.setMuted(next);
+      try {
+        window.localStorage.setItem(MUTE_STORAGE_KEY, next ? '1' : '0');
+      } catch {
+        // ignore
+      }
+      // Confirmation blip when unmuting
+      if (!next) {
+        sfx.unlock();
+        sfx.uiBlip();
+      }
+      return next;
+    });
+  }, []);
 
   // Keyboard shortcut: ? to open help
   useEffect(() => {
@@ -65,6 +100,29 @@ export default function HUD({ onOpenHelp }) {
           </div>
         </button>
       )}
+
+      {/* Mute toggle */}
+      <button
+        onClick={toggleMute}
+        className="fixed top-3 z-[60] flex items-center justify-center transition-all hover:opacity-90"
+        style={{
+          right: 51,
+          width: 36,
+          height: 36,
+          background: 'var(--bg-primary)',
+          border: `2px solid ${muted ? 'var(--danger)' : 'var(--pixel-border)'}`,
+          color: muted ? 'var(--danger)' : 'var(--text-primary)',
+          fontFamily: "'Press Start 2P', monospace",
+          fontSize: 11,
+          boxShadow: '0 2px 0 0 #0a0a1a',
+          cursor: 'pointer',
+          letterSpacing: 0,
+        }}
+        title={muted ? 'Unmute' : 'Mute'}
+        aria-label={muted ? 'Unmute' : 'Mute'}
+      >
+        {muted ? 'X' : '))'}
+      </button>
 
       {/* Help (?) button — always visible */}
       <button
